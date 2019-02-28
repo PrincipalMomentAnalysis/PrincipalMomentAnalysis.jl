@@ -35,7 +35,7 @@ function _pma(X::AbstractMatrix, S::AbstractMatrix; dim=typemax(Int))
 	K = Symmetric(Y'Y)
 	dim = min(dim, N)
 	F = eigen(K, N-dim+1:N)
-	Σ = reverse(F.values)
+	Σ = sqrt.(max.(0.,reverse(F.values)))
 	VV = F.vectors[:,end:-1:1] # Coordinates of simplex equivalents, not interesting in practice.
 
 	U = Y*VV ./ Σ'
