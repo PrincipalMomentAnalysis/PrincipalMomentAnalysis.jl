@@ -28,7 +28,7 @@ end
 
 
 
-function pma(X::AbstractMatrix, S::AbstractMatrix; dim=typemax(Int))
+function _pma(X::AbstractMatrix, S::AbstractMatrix; dim=typemax(Int))
 	P,N = size(X)
 	Y = X*S
 
@@ -38,10 +38,10 @@ function pma(X::AbstractMatrix, S::AbstractMatrix; dim=typemax(Int))
 	Σ = reverse(F.values)
 	VV = F.vectors[:,end:-1:1] # Coordinates of simplex equivalents, not interesting in practice.
 
-	U = Y*VV ./ Σ
+	U = Y*VV ./ Σ'
 	V = X'U ./ Σ' # Coordinates of original sample points in low dimensional space.
 
 	U,Σ,V
 end
 
-pma(X::AbstractMatrix, G::AbstractMatrix; kwargs...) = pma(X, graph2simplices(G); kwargs...)
+pma(X::AbstractMatrix, G::AbstractMatrix; kwargs...) = _pma(X, graph2simplices(G); kwargs...)
