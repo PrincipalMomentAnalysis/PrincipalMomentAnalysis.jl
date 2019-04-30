@@ -22,15 +22,20 @@ function buildgraph(groupBy::AbstractVector, time=ones(length(groupBy)))
 end
 
 
-function neighborhoodgraph(D2::Symmetric, k::Integer, r::Float64; symmetric=false)
+function neighborhoodgraph(D2::Symmetric, k::Integer, r::Float64; symmetric=false, groupBy=ones(size(D2,1)))
 	N = size(D2,1)
 	r2 = r*r
 
+	uniqueGroups = unique(groupBy)
+	groupInds = Dict( g=>findall(groupBy.==g) for g in uniqueGroups )
+
+
 	G = falses(N,N)
 	for j=1:N
-		ind = sortperm(D2[:,j])
+		gInds = groupInds[groupBy[j]]
+		ind = gInds[sortperm(D2[gInds,j])]
 		kk = max(k+1, searchsortedlast(D2[ind,j], r2)) # k+1 to include current node
-		G[ind[1:min(kk,N)], j] .= true
+		G[ind[1:min(kk,length(ind))], j] .= true
 	end
 
 	symmetric && (G .|= G')
