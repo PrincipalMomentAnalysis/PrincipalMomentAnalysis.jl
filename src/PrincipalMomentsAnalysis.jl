@@ -5,6 +5,7 @@ using Statistics
 
 include("graph.jl")
 include("pma.jl")
+include("util.jl")
 
 export
 	pma,
