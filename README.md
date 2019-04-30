@@ -1,2 +1,2 @@
-# PrincipalMomentsAnalysis
-Principal Moments Analysis
+# PrincipalMomentAnalysis
+Principal Moment Analysis
