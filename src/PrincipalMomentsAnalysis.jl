@@ -1,4 +1,4 @@
-module PrincipalMomentsAnalysis
+module PrincipalMomentAnalysis
 
 using LinearAlgebra
 using Statistics
