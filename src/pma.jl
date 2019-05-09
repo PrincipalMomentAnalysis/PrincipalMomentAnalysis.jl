@@ -1,22 +1,4 @@
-
-# function simplexmatrix(n::Integer, w::Real=1.0)
-# 	@assert n>=1
-# 	n==1 && return w*ones(1,1)
-
-# 	u = 1/n + (n-1)/(n*√(n+1))
-# 	v = (1-u)/(n-1)
-
-# 	# reweight
-# 	u = w*u/n
-# 	v = w*v/n
-
-# 	u*I + v*(ones(n,n)-I)
-# end
-
-
-
-# simplexkernel(n,w) is the same as S=simplexmatrix(n,w); S'S
-simplexkernel(n::Integer, w::Real=1.0) = w^2/(n^2*(n+1))*(ones(n,n)+I)
+simplexkernel(n::Integer, w::Real=1.0) = w^2/(n*(n+1))*(ones(n,n)+I)
 
 
 # TODO: improve implementation! Might be possible to avoid the matrix factorization step.
