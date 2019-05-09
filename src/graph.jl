@@ -41,9 +41,7 @@ function neighborhoodgraph(D2::Symmetric, k::Integer, r::Float64; symmetric=fals
 	symmetric && (G .|= G')
 	G
 end
-
-
-function neighborhoodgraph(X::Matrix, k::Integer, r::Float64, dim::Integer=typemax(Int); kwargs...)
+function neighborhoodgraph(X::AbstractMatrix, k::Integer, r::Float64, dim::Integer=typemax(Int); kwargs...)
 	P,N = size(X)
 	K = X'X
 
@@ -55,4 +53,45 @@ function neighborhoodgraph(X::Matrix, k::Integer, r::Float64, dim::Integer=typem
 	d = diag(K)
 	D2 = Symmetric(max.(0., d .+ d' .- 2K)) # matrix of squared distances
 	neighborhoodgraph(D2,k,r;kwargs...)
+end
+
+
+
+
+function sparseneighborhoodgraph(D2::Symmetric, k::Integer, r::Float64; symmetric=false)
+	N = size(D2,1)
+	r2 = r*r
+
+	I,J = Int[],Int[]
+	for j=1:N
+		ind = sortperm(D2[:,j])
+		kk = max(k+1, searchsortedlast(D2[ind,j], r2)) # k+1 to include current node
+		rows = ind[1:min(kk,length(ind))]
+		append!(I,rows)
+		append!(J,Iterators.repeated(j,length(rows)))
+	end
+	G = sparse(I,J,trues(length(I)))
+
+	symmetric && (G .|= G')
+	G
+end
+function sparseneighborhoodgraph(X::AbstractMatrix, k::Integer, r::Float64, dim::Integer=typemax(Int); kwargs...)
+	P,N = size(X)
+
+
+	K = if dim>=min(N,P)
+		X'X # no dimension reduction needed
+	elseif N<=P
+		F = eigen(Symmetric(X'X), N-dim+1:N) # X'X is small
+		F.vectors*Diagonal(F.values)*F.vectors'
+	else # if P<N
+		F = eigen(Symmetric(X*X'), P-dim+1:P) # XX' is small
+		U = F.vectors
+		VΣ = X'U
+		VΣ*VΣ'
+	end
+
+	d = diag(K)
+	D2 = Symmetric(max.(0., d .+ d' .- 2K)) # matrix of squared distances
+	sparseneighborhoodgraph(D2,k,r;kwargs...)
 end
