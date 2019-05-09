@@ -18,8 +18,8 @@ export
 	buildgraph,
 	neighborhoodgraph,
 	sparseneighborhoodgraph,
-	graph2simplices,
-	# sparsegraph2simplices, # WIP
+	simplexgraph2kernelmatrix,
+	simplexgraph2kernelmatrixroot,
 	normalizemean!,
 	normalizemeanstd!,
 	projectionscore,

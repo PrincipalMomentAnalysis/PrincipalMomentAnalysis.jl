@@ -1,18 +1,47 @@
 simplexkernel(n::Integer, w::Real=1.0) = w^2/(n*(n+1))*(ones(n,n)+I)
 
 
-# TODO: improve implementation! Might be possible to avoid the matrix factorization step.
-function graph2simplices(G)
+
+function simplexgraph2kernelmatrix(G::AbstractMatrix{Bool})
 	N = size(G,1)
 	# convert graph to simplex matrix
-	S2 = zeros(N,N) # matrix describing all simplexes
+	K = zeros(N,N) # matrix describing all simplexes
 	for j=1:size(G,2)
 		ind = findall(G[:,j])
-		S2[ind,ind] .+= simplexkernel(length(ind))
+		K[ind,ind] .+= simplexkernel(length(ind))
 	end
+	K
+end
 
-	# Factor S^2 into SᵀS where S is symmetric too.
-	F = eigen(Symmetric(S2))
+
+# sparse input and output
+function simplexgraph2kernelmatrix(G::AbstractSparseMatrix{Bool})
+	N = size(G,1)
+	# convert graph to simplex matrix
+
+	I,J = Int[],Int[]
+	V = Float64[]
+	for j=1:size(G,2)
+		ind = findall(G[:,j])
+
+		# TODO: Could be built directly without constructing temporary simplexkernel matrix
+		S = simplexkernel(length(ind))
+		for c in 1:length(ind)
+			append!(I, ind)
+			append!(J, Iterators.repeated(ind[c],length(ind)))
+			append!(V, S[:,c])
+		end
+	end
+	sparse(I,J,V) # sums over repeated indices
+end
+
+
+
+function simplexgraph2kernelmatrixroot(G::AbstractMatrix{Bool})
+	K = simplexgraph2kernelmatrix(G)
+	# Factor K into AᵀA where A is symmetric too.
+	# F = eigen(Symmetric(K))
+	F = eigen(Symmetric(convert(Matrix,K))) # convert to matrix handles the case when K is sparse and is a no-op otherwise
 	F.vectors*Diagonal(sqrt.(F.values))*F.vectors'
 end
 
@@ -35,23 +64,10 @@ function _pma(X::AbstractMatrix, S::AbstractMatrix; dim=typemax(Int))
 	U,Σ,V,VV
 end
 
-pma(X::AbstractMatrix, G::AbstractMatrix; kwargs...) = _pma(X, graph2simplices(G); kwargs...)
+pma(X::AbstractMatrix, G::AbstractMatrix{Bool}; kwargs...) = _pma(X, simplexgraph2kernelmatrixroot(G); kwargs...)
 
 
 
-
-
-# # --- test with graph for variable side too ---
-# function sparsegraph2simplices(G)
-# 	N = size(G,1)
-# 	# convert graph to simplex matrix
-# 	S = spzeros(N,N) # matrix describing all simplexes
-# 	for j=1:N
-# 		ind = findall(G[:,j])
-# 		S[ind,ind] .+= simplexmatrix(length(ind))
-# 	end
-# 	S
-# end
 
 
 # function _pma2(X::AbstractMatrix, SVariables::AbstractMatrix, SSamples::AbstractMatrix; dim=typemax(Int))

@@ -50,7 +50,7 @@ end
 function projectionscore(X::AbstractMatrix, G::AbstractMatrix, s::Integer; kwargs...)
     @assert maximum(abs.(sum(X,dims=2))) < 1e-9 "X must be centered"
     @assert all(std(X,dims=2).-1.0 .< 1e-9) "All variables in X must have standard deviation 1"
-    _projectionscore(X, graph2simplices(G), s; kwargs...)
+    _projectionscore(X, simplexgraph2kernelmatrixroot(G), s; kwargs...)
 end
 
 
@@ -145,5 +145,5 @@ function projectionscorefiltered(X::AbstractMatrix, G::AbstractMatrix, variableS
     nbrSamples = size(X,2)
     @assert maximum(abs.(sum(X,dims=2))) < 1e-9 "X must be centered"
     @assert all(std(X,dims=2).-1.0 .< 1e-9) "All variables in X must have standard deviation 1"
-    _projectionscorefiltered(X,graph2simplices(G),variableStds,s,σThresholds;kwargs...)
+    _projectionscorefiltered(X,simplexgraph2kernelmatrixroot(G),variableStds,s,σThresholds;kwargs...)
 end
