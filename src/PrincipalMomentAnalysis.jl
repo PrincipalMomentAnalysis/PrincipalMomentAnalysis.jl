@@ -13,8 +13,8 @@ include("projectionscore.jl")
 export
 	pma,
 	_pma, # WIP
-	# pma2, # WIP
-	# _pma2, # WIP
+	pma2, # WIP
+	_pma2, # WIP
 	buildgraph,
 	neighborhoodgraph,
 	sparseneighborhoodgraph,

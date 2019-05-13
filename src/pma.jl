@@ -69,6 +69,46 @@ pma(X::AbstractMatrix, G::AbstractMatrix{Bool}; kwargs...) = _pma(X, simplexgrap
 
 
 
+function _pma2(X::AbstractMatrix, dims::Integer, variableKernel, sampleKernelRoot)
+	P,N = size(X)
+
+	R2 = Symmetric(X'*(variableKernel*X))
+	K = Symmetric(sampleKernelRoot'R2*sampleKernelRoot)
+	dims = min(dims, N)
+	F = eigen(K, N-dims+1:N)
+	Σ = sqrt.(max.(0.,reverse(F.values)))
+	W = F.vectors[:,end:-1:1] # Basis for sample simplices
+
+	U = X*(sampleKernelRoot*W) ./ Σ' # Coordinates of original variables in low dimensional space.
+
+	# R = cholesky(R2).U # doesn't work well since the matrix is only positively semidefinite and round errors will cause failure
+	FR = eigen(R2)
+	R = (FR.vectors * Diagonal(sqrt.(max.(0.,FR.values))))'
+
+	Z = R*(sampleKernelRoot*W) ./ Σ' # Z columns are *a* base for the variable simplices, but is not interesting in itself.
+	V = R'Z ./ Σ'
+
+	U,Σ,V,Z,W
+end
+
+
+function pma2(X; dims=typemax(Int),
+	             variableGraph=nothing, variableKernel=nothing,
+	             sampleGraph=nothing, sampleKernelRoot=nothing)
+	@assert any(!isequal(nothing),(variableGraph,variableKernel,sampleGraph,sampleKernelRoot)) "Specify at least one of the keyword arguments variableGraph and sampleGraph"
+
+	@assert !(variableGraph!=nothing && variableKernel!=nothing) "Only one of the keyword arguments variableGraph and variableKernel can be used."
+	@assert !(sampleGraph!=nothing && sampleKernelRoot!=nothing) "Only one of the keyword arguments sampleGraph and sampleKernelRoot can be used."
+
+	variableGraph  != nothing && (variableKernel = simplexgraph2kernelmatrix(variableGraph))
+	variableKernel == nothing && (variableKernel = I)
+
+	sampleGraph      != nothing && (sampleKernelRoot = simplexgraph2kernelmatrixroot(sampleGraph))
+	sampleKernelRoot == nothing && (sampleKernelRoot = I)
+
+	_pma2(X, dims, variableKernel, sampleKernelRoot)
+end
+
 
 # function _pma2(X::AbstractMatrix, SVariables::AbstractMatrix, SSamples::AbstractMatrix; dim=typemax(Int))
 # 	P,N = size(X)
