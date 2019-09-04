@@ -42,7 +42,7 @@ function populategui!(w, ds::Dataset)
 	sa = String[]
 
 	if isempty(ds.errorMsg)
-		infoStr = """File: "$(ds.filepath)" with "$(size(ds.data,2)) samples, $(size(ds.data,1)) variables, "$(size(ds.sa,2)) sample annotations and $(size(ds.va,2)) variable annotations."""
+		infoStr = """File: "$(ds.filepath)" with $(size(ds.data,2)) samples, $(size(ds.data,1)) variables, $(size(ds.sa,2)) sample annotations and $(size(ds.va,2)) variable annotations."""
 		sa = string.(names(ds.sa))
 	else
 		infoStr = ds.errorMsg
@@ -106,7 +106,7 @@ function main()
 
 
 	# setup gui
-	w = Window()
+	w = Window(Dict(:width=>512,:height=>384))
 
 	# doc = """<button onclick='Blink.msg("gedataopen", "hej")'>Load Qlucore .gedata</button>"""
 	# doc  = """<button onclick="var electron = require('electron'); var fp = electron.remote.dialog.showOpenDialog({properties: ['openFile']}); if (!(fp===undefined)) { Blink.msg('gedataopen',fp) }">Open Qlucore .gedata file</button>"""
