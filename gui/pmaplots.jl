@@ -2,7 +2,12 @@ using Colors
 using PlotlyJS
 using IterTools
 
-function plotsimplices(V, sa, G, colorBy, colorDict; drawPoints=true, drawLines=true, drawTriangles=true, title="", opacity=0.3, markerSize=5, lineWidth=2, shapeBy=nothing, shapeDict=nothing)
+function plotsimplices(V, sa, G, colorBy, colorDict;
+	                   drawPoints=true, drawLines=true, drawTriangles=true,
+	                   title="", 
+	                   opacity=0.3, markerSize=5, lineWidth=2,
+	                   shapeBy=nothing, shapeDict=nothing,
+	                   width=1536, height=768)
 	traces = GenericTrace[]
 
 	# plot each group in different colors
@@ -62,7 +67,7 @@ function plotsimplices(V, sa, G, colorBy, colorDict; drawPoints=true, drawLines=
 	end
 
 
-	layout = Layout(autosize=false, width=1536, height=768, margin=attr(l=0, r=0, b=0, t=65), title=title)
+	layout = Layout(autosize=false, width=width, height=height, margin=attr(l=0, r=0, b=0, t=65), title=title)
 	# layout = Layout(margin=attr(l=0, r=0, b=0, t=65), title=title)
 	plot(traces, layout)
 end

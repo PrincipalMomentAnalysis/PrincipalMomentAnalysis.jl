@@ -2,7 +2,12 @@ using Colors
 import Gadfly; const gf = Gadfly
 using IterTools
 
-function plotsimplices_gadfly(V, sa, G, colorBy, colorDict; drawPoints=true, drawLines=true, drawTriangles=true, title="", opacity=0.3, markerSize=5, lineWidth=2, shapeBy=nothing, colorTitle=nothing, shapeTitle=nothing)
+function plotsimplices_gadfly(V, sa, G, colorBy, colorDict;
+	                          drawPoints=true, drawLines=true, drawTriangles=true,
+	                          title="",
+	                          opacity=0.3, markerSize=5, lineWidth=2,
+	                          shapeBy=nothing,
+	                          colorTitle=nothing, shapeTitle=nothing)
 	layers = []
 
 	# plot each group in different colors
