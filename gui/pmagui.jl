@@ -72,33 +72,41 @@ function populategui!(w, ds::Dataset)
 end
 
 
-function changesamplemethod!(w, sampleMethod::String)
-	enabled = sampleMethod in ("SA","Time","NNSA")
+function changesamplemethod!(w, sampleMethod::Symbol)
+	enabled = sampleMethod in (:SA,:Time,:NNSA)
 	js(w, js"""document.getElementById("sampleAnnot").disabled = $(!enabled);""")
 
-	enabled = sampleMethod == "Time"
+	enabled = sampleMethod == :Time
 	js(w, js"""document.getElementById("timeAnnot").disabled = $(!enabled);""")
 
-	enabled = sampleMethod in ("NN","NNSA")
+	enabled = sampleMethod in (:NN,:NNSA)
 	js(w, js"""document.getElementById("kNearestNeighbors").disabled = $(!enabled);""")
 	js(w, js"""document.getElementById("distNearestNeighbors").disabled = $(!enabled);""")
 end
 
 
 
-function runpma(ds::Dataset, sampleMethod::String, sampleAnnotation::String, timeAnnotation::String, kNearestNeighbors::String, distNearestNeighbors::String)
+function runpma(ds::Dataset, sampleMethod::Symbol, sampleAnnotation::Symbol, timeAnnotation::Symbol, kNearestNeighbors::Int, distNearestNeighbors::Float64)
 	isempty(ds.errorMsg) || return
-
-	sampleAnnotation = Symbol(sampleAnnotation)
+	@assert sampleMethod in (:SA,:Time,:NN,:NNSA)
 
 	# TODO: handle missing values and avoid making too many matrix copies
 	X = copy(ds.data)
 	X = convert(Matrix{Float64},X)
 	normalizemeanstd!(X)
 
-	G = buildgraph(ds.sa[!,sampleAnnotation])
-	dim = 3
+	G = nothing
+	if sampleMethod == :SA
+		G = buildgraph(ds.sa[!,sampleAnnotation])
+	elseif sampleMethod == :Time
+		G = buildgraph(ds.sa[!,sampleAnnotation], ds.sa[!,timeAnnotation])
+	elseif sampleMethod == :NN
+		G = neighborhoodgraph(X,kNearestNeighbors,distNearestNeighbors,50);
+	elseif sampleMethod == :NNSA
+		G = neighborhoodgraph(X,kNearestNeighbors,distNearestNeighbors,50; groupBy=ds.sa[!,sampleAnnotation]);
+	end
 
+	dim = 3
 	UPMA,SPMA,VPMA = pma(X,G,dim=dim)
 
 	colorBy = sampleAnnotation
@@ -125,54 +133,12 @@ end
 
 function main()
 	# init
-	dataset = Dataset()
+	dataset = opendataset("")
 	messageQueue = Queue{Pair{String,Any}}()
 
 
 	# setup gui
 	w = Window(Dict(:width=>512,:height=>384))
-
-	# doc = """<button onclick='Blink.msg("gedataopen", "hej")'>Load Qlucore .gedata</button>"""
-	# doc  = """<button onclick="var electron = require('electron'); var fp = electron.remote.dialog.showOpenDialog({properties: ['openFile']}); if (!(fp===undefined)) { Blink.msg('gedataopen',fp) }">Open Qlucore .gedata file</button>"""
-	# doc  = """<div>
-	#               <button onclick='var electron = require("electron"); var fp = electron.remote.dialog.showOpenDialog({properties: ["openFile"]}); if (!(fp===undefined)) { Blink.msg("gedataopen",fp) }'>Open Qlucore .gedata file</button>
-	#               <p id="info">Please select file.<p/>
-	#               <div>
-	#                   <p>Choose sample annotation:</p>
-	#                   <select id="sampleAnnot"></select>
-	#                   <p>Choose time annotation:</p>
-	#                   <select id="timeAnnot"></select>
-	#                   <p>Number of Nearest Neighbors:</p>
-	#                   <input type="number" id="kNearestNeighbors" min="0" max="1000000">
-	#                   <p>Nearest Neighbors distance:</p>
-	#                   <input type="range" id="distNearestNeighbors" min="0" max="1" step="0.001" disabled>
-	#               </div>
-	#               <button onclick='Blink.msg("runpma", document.getElementById("sampleAnnot").value)'>Run PMA</button>
-	#           </div>
-	#        """
-	doc  = """<div>
-	              <button onclick='var electron = require("electron"); var fp = electron.remote.dialog.showOpenDialog({properties: ["openFile"]}); if (!(fp===undefined)) { Blink.msg("gedataopen",fp) }'>Open Qlucore .gedata file</button>
-	              <p id="info">Please select file.<p/>
-	              <div>
-	                  <p>Choose Method:</p>
-	                  <div>
-	                      <input type="radio" name="samplemethod" value="methodSA"   onclick='Blink.msg("samplemethod","SA")'   checked>Sample Annotation<br>
-	                      <input type="radio" name="samplemethod" value="methodTime" onclick='Blink.msg("samplemethod","Time")'        >Time Series<br>
-	                      <input type="radio" name="samplemethod" value="methodNN"   onclick='Blink.msg("samplemethod","NN")'          >Nearest Neighbor<br>
-	                      <input type="radio" name="samplemethod" value="methodNNSA" onclick='Blink.msg("samplemethod","NNSA")'        >Nearest Neighbor within groups<br>
-	                  </div>
-	                  <p>Choose sample annotation:</p>
-	                  <select id="sampleAnnot"></select>
-	                  <p>Choose time annotation:</p>
-	                  <select id="timeAnnot"></select>
-	                  <p>Number of Nearest Neighbors:</p>
-	                  <input type="number" id="kNearestNeighbors" min="0" max="1000000" value="0">
-	                  <p>Nearest Neighbors distance:</p>
-	                  <input type="range" id="distNearestNeighbors" min="0" max="1" step="0.001" value="0">
-	              </div>
-	              <button onclick='Blink.msg("runpma", ["SA", document.getElementById("sampleAnnot").value, document.getElementById("timeAnnot").value, document.getElementById("kNearestNeighbors").value, document.getElementById("distNearestNeighbors").value])'>Run PMA</button>
-	          </div>
-	       """
 
 	# event listeners
 	handle(w, "gedataopen") do args
@@ -189,16 +155,12 @@ function main()
 		enqueue!(messageQueue, "runpma"=>args)
 	end
 
-	# handle(w, "closed") do args...
-	# 	println("Closed!")
-	# end
-
+	doc = read(joinpath(@__DIR__,"content.html"),String)
 	body!(w,doc,async=false)
-	changesamplemethod!(w,"SA")
+	changesamplemethod!(w,:SA)
 
-	
+
 	# Message handling loop
-	# while true
 	while isopen(w.content.sock) # is there a better way to check if the window is still open?
 		if !isempty(messageQueue)
 			msg = dequeue!(messageQueue)
@@ -213,12 +175,24 @@ function main()
 				end
 				populategui!(w,dataset)
 			elseif msg.first == "samplemethod"
-				sampleMethod = msg.second
+				sampleMethod = Symbol(msg.second)
 				println("Changing method to ", sampleMethod)
 				changesamplemethod!(w,sampleMethod)
 			elseif msg.first == "runpma"
 				println("Running PMA ")
-				runpma(dataset,msg.second...)
+				try
+					isempty(dataset.errorMsg) || error(dataset.errorMsg)
+					args = msg.second
+					# ds::Dataset, sampleMethod::String, sampleAnnotation::String, timeAnnotation::String, kNearestNeighbors::String, distNearestNeighbors::String
+					sampleMethod = Symbol(args[1])
+					sampleAnnotation = Symbol(args[2])
+					timeAnnotation = Symbol(args[3])
+					kNearestNeighbors = parse(Int,args[4])
+					distNearestNeighbors = parse(Float64,args[5])
+					runpma(dataset,sampleMethod, sampleAnnotation, timeAnnotation, kNearestNeighbors, distNearestNeighbors)
+				catch e
+					println("Failed to run PMA: ", sprint(showerror, e))
+				end
 			else
 				@warn "Unknown message type: $(msg.first)"
 			end
