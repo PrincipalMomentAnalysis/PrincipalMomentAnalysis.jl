@@ -14,6 +14,7 @@ using PlotlyJS
 
 include("qlucore.jl")
 include("pmaplots.jl")
+include("pca.jl")
 
 struct Dataset
 	data::Matrix
@@ -122,6 +123,41 @@ function runpma(ds::Dataset, sampleMethod::String, sampleAnnotation::String, tim
 	display(plPMA)
 end
 
+function runpca(ds::Dataset, sampleMethod::String, sampleAnnotation::String, timeAnnotation::String, kNearestNeighbors::String, distNearestNeighbors::String)
+	isempty(ds.errorMsg) || return
+	@assert sampleMethod in ("SA","Time","NN","NNSA")
+
+	sampleAnnotation = Symbol(sampleAnnotation)
+
+	# TODO: handle missing values and avoid making too many matrix copies
+	X = copy(ds.data)
+	X = convert(Matrix{Float64},X)
+	normalizemeanstd!(X)
+
+	G = buildgraph(ds.sa[!,sampleAnnotation])
+	dim = 3
+
+	UPCA,SPCA,VPCA = pca(X,dim=dim)
+
+	colorBy = sampleAnnotation
+	colorDict = colordict(ds.sa[!,colorBy])
+
+	println(collect(keys(colorDict)))
+	println(collect(values(colorDict)))
+
+	markerSize = 5
+	lineWidth = 1
+	opacity = 0.05
+	title = splitdir(ds.filepath)[2]
+	drawTriangles = false#true
+	drawLines = true
+
+	plPCA = plotsimplices(VPCA,ds.sa,G,colorBy,colorDict, title="$title PCA",
+	                      drawTriangles=drawTriangles, drawLines=drawLines, drawPoints=true,
+	                      opacity=opacity, markerSize=markerSize, lineWidth=lineWidth,
+	                      width=1024, height=768)
+	display(plPCA)
+end
 
 
 function main()
@@ -172,6 +208,7 @@ function main()
 	                  <input type="range" id="distNearestNeighbors" min="0" max="1" step="0.001" value="0">
 	              </div>
 	              <button onclick='Blink.msg("runpma", ["SA", document.getElementById("sampleAnnot").value, document.getElementById("timeAnnot").value, document.getElementById("kNearestNeighbors").value, document.getElementById("distNearestNeighbors").value])'>Run PMA</button>
+	              <button onclick='Blink.msg("runpca", ["SA", document.getElementById("sampleAnnot").value, document.getElementById("timeAnnot").value, document.getElementById("kNearestNeighbors").value, document.getElementById("distNearestNeighbors").value])'>Run PCA</button>
 	          </div>
 	       """
 
@@ -188,6 +225,10 @@ function main()
 	handle(w, "runpma") do args
 		println("runpma: ", args)
 		enqueue!(messageQueue, "runpma"=>args)
+	end
+	handle(w, "runpca") do args
+		println("runpca: ", args)
+		enqueue!(messageQueue, "runpca"=>args)
 	end
 
 	# handle(w, "closed") do args...
@@ -220,12 +261,16 @@ function main()
 			elseif msg.first == "runpma"
 				println("Running PMA ")
 				runpma(dataset,msg.second...)
+			elseif msg.first == "runpca"
+				println("Running PCA ")
+				runpca(dataset,msg.second...)
 			else
 				@warn "Unknown message type: $(msg.first)"
 			end
 		end
 
-		yield() # Allow GUI to run
+		# yield() # Allow GUI to run
+		sleep(0.05) # Allow GUI to run
 	end
 
 
