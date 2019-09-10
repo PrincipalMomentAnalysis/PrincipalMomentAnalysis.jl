@@ -88,6 +88,7 @@ end
 
 function runpma(ds::Dataset, sampleMethod::String, sampleAnnotation::String, timeAnnotation::String, kNearestNeighbors::String, distNearestNeighbors::String)
 	isempty(ds.errorMsg) || return
+	@assert sampleMethod in ("SA","Time","NN","NNSA")
 
 	sampleAnnotation = Symbol(sampleAnnotation)
 
