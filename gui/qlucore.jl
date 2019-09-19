@@ -22,14 +22,14 @@ function read(io::IO)
 	m = match(r"^qlucore\tgedata\tversion (.+)$", line)
 	@assert m!=nothing "Invalid header line: $line"
 	version = VersionNumber(m.captures[1])
-	expectedVersion = v"1.1"
-	version==expectedVersion || @warn "Expected .gedata version $expectedVersion, got $version, parsing might fail."
+	expectedVersions = (v"1.0",v"1.1")
+	version in expectedVersions || @warn "Expected .gedata versions $expectedVersion, got $version, parsing might fail."
 
-	# two empty lines
-	line = readline(io)
-	@assert isempty(line) "Expected empty line, got $line"
-	line = readline(io)
-	@assert isempty(line) "Expected empty line, got $line"
+	nbrExpectedEmptyLines = version>=v"1.1" ? 2 : 1
+	for i=1:nbrExpectedEmptyLines
+		line = readline(io)
+		@assert isempty(line) "Expected empty line, got $line"
+	end
 
 	# sample info
 	line = readline(io)
