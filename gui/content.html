@@ -8,6 +8,15 @@
         }
         return "";
     }
+    function getPlotDims() {
+        var g = document.getElementById("plotDimsGroup").getElementsByTagName("input");
+        for(var i = 0; i < g.length; i++){
+            if(g[i].checked) {
+                return g[i].value;
+            }
+        }
+        return "";
+    }
 </script>
 <div>
     <button onclick='var electron = require("electron"); var fp = electron.remote.dialog.showOpenDialog({properties: ["openFile"]}); if (!(fp===undefined)) { Blink.msg("gedataopen",fp) }'>Open Qlucore .gedata file</button>
@@ -29,6 +38,14 @@
         <p>Nearest Neighbors distance:</p>
         <input type="range" id="distNearestNeighbors" min="0" max="1" step="0.001" value="0">
     </div>
-    <button onclick='Blink.msg("runpma", [getSampleMode(), document.getElementById("sampleAnnot").value, document.getElementById("timeAnnot").value, document.getElementById("kNearestNeighbors").value, document.getElementById("distNearestNeighbors").value])'>Run PMA</button>
-    <button onclick='Blink.msg("runpca", [getSampleMode(), document.getElementById("sampleAnnot").value, document.getElementById("timeAnnot").value, document.getElementById("kNearestNeighbors").value, document.getElementById("distNearestNeighbors").value])'>Run PCA</button>
+    <div>
+        <p>Plot settings:</p>
+        <p>Plot dimension:</p>
+        <div id="plotDimsGroup">
+            <input type="radio" name="plotdims" value="2"        >2
+            <input type="radio" name="plotdims" value="3" checked>3
+        </div>
+    </div>
+    <button onclick='Blink.msg("runpma", [getSampleMode(), document.getElementById("sampleAnnot").value, document.getElementById("timeAnnot").value, document.getElementById("kNearestNeighbors").value, document.getElementById("distNearestNeighbors").value, getPlotDims()])'>Run PMA</button>
+    <button onclick='Blink.msg("runpca", [getSampleMode(), document.getElementById("sampleAnnot").value, document.getElementById("timeAnnot").value, document.getElementById("kNearestNeighbors").value, document.getElementById("distNearestNeighbors").value, getPlotDims()])'>Run PCA</button>
 </div>

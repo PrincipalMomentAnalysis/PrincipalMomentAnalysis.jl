@@ -11,9 +11,11 @@ using DataStructures
 
 using Colors
 using PlotlyJS
+using Measures
 
 include("qlucore.jl")
 include("pmaplots.jl")
+include("pmaplots_gadfly.jl")
 include("pca.jl")
 
 struct Dataset
@@ -86,10 +88,10 @@ function changesamplemethod!(w, sampleMethod::Symbol)
 end
 
 
-
-function runpma(ds::Dataset, sampleMethod::Symbol, sampleAnnotation::Symbol, timeAnnotation::Symbol, kNearestNeighbors::Int, distNearestNeighbors::Float64)
+function runpma(ds::Dataset, sampleMethod::Symbol, sampleAnnotation::Symbol, timeAnnotation::Symbol, kNearestNeighbors::Int, distNearestNeighbors::Float64, plotDims::Int)
 	isempty(ds.errorMsg) || return
 	@assert sampleMethod in (:SA,:Time,:NN,:NNSA)
+	@assert plotDims in 2:3
 
 	X = zeros(size(ds.data))
 	if any(ismissing,ds.data)
@@ -117,7 +119,7 @@ function runpma(ds::Dataset, sampleMethod::Symbol, sampleAnnotation::Symbol, tim
 		G = neighborhoodgraph(X,kNearestNeighbors,distNearestNeighbors,50; groupBy=ds.sa[!,sampleAnnotation]);
 	end
 
-	dim = 3
+	dim = plotDims
 	UPMA,SPMA,VPMA = pma(X,G,dim=dim)
 
 	colorBy = sampleAnnotation
@@ -126,23 +128,35 @@ function runpma(ds::Dataset, sampleMethod::Symbol, sampleAnnotation::Symbol, tim
 	println(collect(keys(colorDict)))
 	println(collect(values(colorDict)))
 
-	markerSize = 5
-	lineWidth = 1
 	opacity = 0.05
 	title = splitdir(ds.filepath)[2]
 	drawTriangles = false#true
 	drawLines = true
 
-	plPMA = plotsimplices(VPMA,ds.sa,G,colorBy,colorDict, title="$title PMA",
-	                      drawTriangles=drawTriangles, drawLines=drawLines, drawPoints=true,
-	                      opacity=opacity, markerSize=markerSize, lineWidth=lineWidth,
-	                      width=1024, height=768)
-	display(plPMA)
+	if plotDims==3
+		markerSize = 5
+		lineWidth = 1
+
+		plPMA = plotsimplices(VPMA,ds.sa,G,colorBy,colorDict, title="$title PMA",
+		                      drawTriangles=drawTriangles, drawLines=drawLines, drawPoints=true,
+		                      opacity=opacity, markerSize=markerSize, lineWidth=lineWidth,
+		                      width=1024, height=768)
+		display(plPMA)
+	elseif plotDims==2
+		markerSize = 0.9mm
+		lineWidth = 0.3mm
+
+		plPMA = plotsimplices_gadfly(VPMA,ds.sa,G,colorBy,colorDict, title="$title PMA",
+		                             drawTriangles=drawTriangles, drawLines=drawLines, drawPoints=true,
+		                             opacity=opacity, markerSize=markerSize, lineWidth=lineWidth)
+		display(plPMA)
+	end
 end
 
-function runpca(ds::Dataset, sampleMethod::Symbol, sampleAnnotation::Symbol, timeAnnotation::Symbol, kNearestNeighbors::Int, distNearestNeighbors::Float64)
+function runpca(ds::Dataset, sampleMethod::Symbol, sampleAnnotation::Symbol, timeAnnotation::Symbol, kNearestNeighbors::Int, distNearestNeighbors::Float64, plotDims::Int)
 	isempty(ds.errorMsg) || return
 	@assert sampleMethod in (:SA,:Time,:NN,:NNSA)
+	@assert plotDims in 2:3
 
 	X = zeros(size(ds.data))
 	if any(ismissing,ds.data)
@@ -170,7 +184,7 @@ function runpca(ds::Dataset, sampleMethod::Symbol, sampleAnnotation::Symbol, tim
 		G = neighborhoodgraph(X,kNearestNeighbors,distNearestNeighbors,50; groupBy=ds.sa[!,sampleAnnotation]);
 	end
 
-	dim = 3
+	dim = plotDims
 	UPCA,SPCA,VPCA = pca(X,dim=dim)
 
 	colorBy = sampleAnnotation
@@ -179,18 +193,29 @@ function runpca(ds::Dataset, sampleMethod::Symbol, sampleAnnotation::Symbol, tim
 	println(collect(keys(colorDict)))
 	println(collect(values(colorDict)))
 
-	markerSize = 5
-	lineWidth = 1
 	opacity = 0.05
 	title = splitdir(ds.filepath)[2]
 	drawTriangles = false#true
 	drawLines = true
 
-	plPCA = plotsimplices(VPCA,ds.sa,G,colorBy,colorDict, title="$title PCA",
-	                      drawTriangles=drawTriangles, drawLines=drawLines, drawPoints=true,
-	                      opacity=opacity, markerSize=markerSize, lineWidth=lineWidth,
-	                      width=1024, height=768)
-	display(plPCA)
+	if plotDims==3
+		markerSize = 5
+		lineWidth = 1
+
+		plPCA = plotsimplices(VPCA,ds.sa,G,colorBy,colorDict, title="$title PCA",
+		                      drawTriangles=drawTriangles, drawLines=drawLines, drawPoints=true,
+		                      opacity=opacity, markerSize=markerSize, lineWidth=lineWidth,
+		                      width=1024, height=768)
+		display(plPCA)
+	elseif plotDims==2
+		markerSize = 0.9mm
+		lineWidth = 0.3mm
+
+		plPCA = plotsimplices_gadfly(VPCA,ds.sa,G,colorBy,colorDict, title="$title PCA",
+		                             drawTriangles=drawTriangles, drawLines=drawLines, drawPoints=true,
+		                             opacity=opacity, markerSize=markerSize, lineWidth=lineWidth)
+		display(plPCA)
+	end
 end
 
 
@@ -202,7 +227,7 @@ function main()
 
 
 	# setup gui
-	w = Window(Dict(:width=>512,:height=>384))
+	w = Window(Dict(:width=>512,:height=>512))
 
 	# event listeners
 	handle(w, "gedataopen") do args
@@ -256,7 +281,8 @@ function main()
 					timeAnnotation = Symbol(args[3])
 					kNearestNeighbors = parse(Int,args[4])
 					distNearestNeighbors = parse(Float64,args[5])
-					runpma(dataset,sampleMethod, sampleAnnotation, timeAnnotation, kNearestNeighbors, distNearestNeighbors)
+					plotDims = parse(Int,args[6])
+					runpma(dataset,sampleMethod, sampleAnnotation, timeAnnotation, kNearestNeighbors, distNearestNeighbors, plotDims)
 				catch e
 					println("Failed to run PMA: ", sprint(showerror, e))
 				end
@@ -270,7 +296,8 @@ function main()
 					timeAnnotation = Symbol(args[3])
 					kNearestNeighbors = parse(Int,args[4])
 					distNearestNeighbors = parse(Float64,args[5])
-					runpca(dataset,sampleMethod, sampleAnnotation, timeAnnotation, kNearestNeighbors, distNearestNeighbors)
+					plotDims = parse(Int,args[6])
+					runpca(dataset,sampleMethod, sampleAnnotation, timeAnnotation, kNearestNeighbors, distNearestNeighbors, plotDims)
 				catch e
 					println("Failed to run PCA: ", sprint(showerror, e))
 				end
