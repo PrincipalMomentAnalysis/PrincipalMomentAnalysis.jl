@@ -104,7 +104,6 @@ function runpma(ds::Dataset, sampleMethod::Symbol, sampleAnnotation::Symbol, tim
 		X .= ds.data # just copy
 	end
 
-
 	normalizemeanstd!(X)
 
 	G = nothing
@@ -145,9 +144,19 @@ function runpca(ds::Dataset, sampleMethod::Symbol, sampleAnnotation::Symbol, tim
 	isempty(ds.errorMsg) || return
 	@assert sampleMethod in (:SA,:Time,:NN,:NNSA)
 
-	# TODO: handle missing values and avoid making too many matrix copies
-	X = copy(ds.data)
-	X = convert(Matrix{Float64},X)
+	X = zeros(size(ds.data))
+	if any(ismissing,ds.data)
+		# Replace missing values with mean over samples with nonmissing data
+		println("Reconstructing missing values (taking the mean over all nonmissing samples)")
+		for i=1:size(X,1)
+			m = ismissing.(ds.data[i,:])
+			X[i,.!m] .= ds.data[i,.!m]
+			X[i,m] .= mean(ds.data[i,.!m])
+		end
+	else
+		X .= ds.data # just copy
+	end
+
 	normalizemeanstd!(X)
 
 	G = nothing
