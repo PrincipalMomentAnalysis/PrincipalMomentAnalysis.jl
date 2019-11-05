@@ -112,6 +112,7 @@ function runpma(ds::Dataset, sampleMethod::Symbol, sampleAnnotation::Symbol, tim
 	if sampleMethod == :SA
 		G = buildgraph(ds.sa[!,sampleAnnotation])
 	elseif sampleMethod == :Time
+		eltype(ds.sa[!,timeAnnotation])<:Number || @warn "Expected time annotation to contain numbers, got $(eltype(ds.sa[!,timeAnnotation])). Fallback to default sorting."
 		G = buildgraph(ds.sa[!,sampleAnnotation], ds.sa[!,timeAnnotation])
 	elseif sampleMethod == :NN
 		G = neighborhoodgraph(X,kNearestNeighbors,distNearestNeighbors,50);
@@ -177,6 +178,7 @@ function runpca(ds::Dataset, sampleMethod::Symbol, sampleAnnotation::Symbol, tim
 	if sampleMethod == :SA
 		G = buildgraph(ds.sa[!,sampleAnnotation])
 	elseif sampleMethod == :Time
+		eltype(ds.sa[!,timeAnnotation])<:Number || @warn "Expected time annotation to contain numbers, got $(eltype(ds.sa[!,timeAnnotation])). Fallback to default sorting."
 		G = buildgraph(ds.sa[!,sampleAnnotation], ds.sa[!,timeAnnotation])
 	elseif sampleMethod == :NN
 		G = neighborhoodgraph(X,kNearestNeighbors,distNearestNeighbors,50);

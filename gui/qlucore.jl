@@ -17,6 +17,18 @@ function read(filename::String)
 	end
 end
 
+
+function tryparsecolumn(v::AbstractArray)
+	for T in (Int, Float64)
+		try
+			return parse.(T, v)
+		catch
+		end
+	end
+	string.(v)
+end
+
+
 function read(io::IO)
 	line = readline(io)
 	m = match(r"^qlucore\tgedata\tversion (.+)$", line)
@@ -61,7 +73,7 @@ function read(io::IO)
 		saName = Symbol(splitLine[nbrVariableAnnotations+1])
 		@assert !in(saName, saNamesFound) "Could not parse sample annotations. Annotation \"$saName\" found twice."
 		push!(saNamesFound,saName)
-		sa[!,saName] = string.(splitLine[nbrVariableAnnotations+2:end])
+		sa[!,saName] = tryparsecolumn(splitLine[nbrVariableAnnotations+2:end])
 	end
 
 	# variable annotations and data
@@ -93,6 +105,11 @@ function read(io::IO)
 		@assert isempty(splitLine[nbrVariableAnnotations+1]) "Could not parse data line. Expected empty column between variable annotations and data."
 
 		data[i,:] .= parsefloatmissing.(splitLine[nbrVariableAnnotations+2:end])
+	end
+
+	# convert variable annotations to numbers
+	for vaName in vaNames
+		va[!,vaName] = tryparsecolumn(va[!,vaName])
 	end
 
 	data,sa,va,version
