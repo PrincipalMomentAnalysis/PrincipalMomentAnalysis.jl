@@ -40,6 +40,15 @@ function opendataset(filepath::String)::Dataset
 	end
 end
 
+
+struct DimReduction
+	U::Matrix{Float64}
+	S::Vector{Float64}
+	V::Matrix{Float64}
+end
+DimReduction() = DimReduction(zeros(0,0),zeros(0),zeros(0,0))
+
+
 function populategui!(w, ds::Dataset)
 	infoStr = ""
 	sa = String[]
@@ -87,9 +96,9 @@ function changesamplemethod!(w, sampleMethod::Symbol)
 	js(w, js"""document.getElementById("distNearestNeighbors").disabled = $(!enabled);""")
 end
 
-
-function runpma(ds::Dataset, sampleMethod::Symbol, sampleAnnotation::Symbol, timeAnnotation::Symbol, kNearestNeighbors::Int, distNearestNeighbors::Float64, plotDims::Int)
+function rundimreduction(ds::Dataset, dimReductionMethod::Symbol, sampleMethod::Symbol, sampleAnnotation::Symbol, timeAnnotation::Symbol, kNearestNeighbors::Int, distNearestNeighbors::Float64, plotDims::Int)
 	isempty(ds.errorMsg) || return
+	@assert dimReductionMethod in (:PMA,:PCA)
 	@assert sampleMethod in (:SA,:Time,:NN,:NNSA)
 	@assert plotDims in 2:3
 
@@ -121,7 +130,13 @@ function runpma(ds::Dataset, sampleMethod::Symbol, sampleAnnotation::Symbol, tim
 	end
 
 	dim = plotDims
-	UPMA,SPMA,VPMA = pma(X,G,dim=dim)
+
+	if dimReductionMethod==:PMA
+		U,S,V = pma(X,G,dim=dim)
+	elseif dimReductionMethod==:PCA
+		U,S,V = pca(X,dim=dim)
+	end
+	F = DimReduction(U,S,V)
 
 	colorBy = sampleAnnotation
 	colorDict = colordict(ds.sa[!,colorBy])
@@ -130,7 +145,7 @@ function runpma(ds::Dataset, sampleMethod::Symbol, sampleAnnotation::Symbol, tim
 	println(collect(values(colorDict)))
 
 	opacity = 0.05
-	title = splitdir(ds.filepath)[2]
+	title = string(splitdir(ds.filepath)[2], " ", string(dimReductionMethod))
 	drawTriangles = false#true
 	drawLines = true
 
@@ -138,85 +153,19 @@ function runpma(ds::Dataset, sampleMethod::Symbol, sampleAnnotation::Symbol, tim
 		markerSize = 5
 		lineWidth = 1
 
-		plPMA = plotsimplices(VPMA,ds.sa,G,colorBy,colorDict, title="$title PMA",
-		                      drawTriangles=drawTriangles, drawLines=drawLines, drawPoints=true,
-		                      opacity=opacity, markerSize=markerSize, lineWidth=lineWidth,
-		                      width=1024, height=768)
-		display(plPMA)
+		pl = plotsimplices(F.V,ds.sa,G,colorBy,colorDict, title=title,
+		                   drawTriangles=drawTriangles, drawLines=drawLines, drawPoints=true,
+		                   opacity=opacity, markerSize=markerSize, lineWidth=lineWidth,
+		                   width=1024, height=768)
+		display(pl)
 	elseif plotDims==2
 		markerSize = 0.9mm
 		lineWidth = 0.3mm
 
-		plPMA = plotsimplices_gadfly(VPMA,ds.sa,G,colorBy,colorDict, title="$title PMA",
-		                             drawTriangles=drawTriangles, drawLines=drawLines, drawPoints=true,
-		                             opacity=opacity, markerSize=markerSize, lineWidth=lineWidth)
-		display(plPMA)
-	end
-end
-
-function runpca(ds::Dataset, sampleMethod::Symbol, sampleAnnotation::Symbol, timeAnnotation::Symbol, kNearestNeighbors::Int, distNearestNeighbors::Float64, plotDims::Int)
-	isempty(ds.errorMsg) || return
-	@assert sampleMethod in (:SA,:Time,:NN,:NNSA)
-	@assert plotDims in 2:3
-
-	X = zeros(size(ds.data))
-	if any(ismissing,ds.data)
-		# Replace missing values with mean over samples with nonmissing data
-		println("Reconstructing missing values (taking the mean over all nonmissing samples)")
-		for i=1:size(X,1)
-			m = ismissing.(ds.data[i,:])
-			X[i,.!m] .= ds.data[i,.!m]
-			X[i,m] .= mean(ds.data[i,.!m])
-		end
-	else
-		X .= ds.data # just copy
-	end
-
-	normalizemeanstd!(X)
-
-	G = nothing
-	if sampleMethod == :SA
-		G = buildgraph(ds.sa[!,sampleAnnotation])
-	elseif sampleMethod == :Time
-		eltype(ds.sa[!,timeAnnotation])<:Number || @warn "Expected time annotation to contain numbers, got $(eltype(ds.sa[!,timeAnnotation])). Fallback to default sorting."
-		G = buildgraph(ds.sa[!,sampleAnnotation], ds.sa[!,timeAnnotation])
-	elseif sampleMethod == :NN
-		G = neighborhoodgraph(X,kNearestNeighbors,distNearestNeighbors,50);
-	elseif sampleMethod == :NNSA
-		G = neighborhoodgraph(X,kNearestNeighbors,distNearestNeighbors,50; groupBy=ds.sa[!,sampleAnnotation]);
-	end
-
-	dim = plotDims
-	UPCA,SPCA,VPCA = pca(X,dim=dim)
-
-	colorBy = sampleAnnotation
-	colorDict = colordict(ds.sa[!,colorBy])
-
-	println(collect(keys(colorDict)))
-	println(collect(values(colorDict)))
-
-	opacity = 0.05
-	title = splitdir(ds.filepath)[2]
-	drawTriangles = false#true
-	drawLines = true
-
-	if plotDims==3
-		markerSize = 5
-		lineWidth = 1
-
-		plPCA = plotsimplices(VPCA,ds.sa,G,colorBy,colorDict, title="$title PCA",
-		                      drawTriangles=drawTriangles, drawLines=drawLines, drawPoints=true,
-		                      opacity=opacity, markerSize=markerSize, lineWidth=lineWidth,
-		                      width=1024, height=768)
-		display(plPCA)
-	elseif plotDims==2
-		markerSize = 0.9mm
-		lineWidth = 0.3mm
-
-		plPCA = plotsimplices_gadfly(VPCA,ds.sa,G,colorBy,colorDict, title="$title PCA",
-		                             drawTriangles=drawTriangles, drawLines=drawLines, drawPoints=true,
-		                             opacity=opacity, markerSize=markerSize, lineWidth=lineWidth)
-		display(plPCA)
+		pl = plotsimplices_gadfly(F.V,ds.sa,G,colorBy,colorDict, title=title,
+		                          drawTriangles=drawTriangles, drawLines=drawLines, drawPoints=true,
+		                          opacity=opacity, markerSize=markerSize, lineWidth=lineWidth)
+		display(pl)
 	end
 end
 
@@ -241,13 +190,9 @@ function main()
 		println("samplemethod: ", args)
 		enqueue!(messageQueue, "samplemethod"=>args)
 	end
-	handle(w, "runpma") do args
-		println("runpma: ", args)
-		enqueue!(messageQueue, "runpma"=>args)
-	end
-	handle(w, "runpca") do args
-		println("runpca: ", args)
-		enqueue!(messageQueue, "runpca"=>args)
+	handle(w, "showplot") do args
+		println("showplot: ", args)
+		enqueue!(messageQueue, "showplot"=>args)
 	end
 
 	doc = read(joinpath(@__DIR__,"content.html"),String)
@@ -273,35 +218,21 @@ function main()
 				sampleMethod = Symbol(msg.second)
 				println("Changing method to ", sampleMethod)
 				changesamplemethod!(w,sampleMethod)
-			elseif msg.first == "runpma"
-				println("Running PMA")
+			elseif msg.first == "showplot"
+				println("Showing plot")
+				args = msg.second
+				dimReductionMethod = Symbol(args[1])
 				try
 					isempty(dataset.errorMsg) || error(dataset.errorMsg)
-					args = msg.second
-					sampleMethod = Symbol(args[1])
-					sampleAnnotation = Symbol(args[2])
-					timeAnnotation = Symbol(args[3])
-					kNearestNeighbors = parse(Int,args[4])
-					distNearestNeighbors = parse(Float64,args[5])
-					plotDims = parse(Int,args[6])
-					runpma(dataset,sampleMethod, sampleAnnotation, timeAnnotation, kNearestNeighbors, distNearestNeighbors, plotDims)
+					sampleMethod = Symbol(args[2])
+					sampleAnnotation = Symbol(args[3])
+					timeAnnotation = Symbol(args[4])
+					kNearestNeighbors = parse(Int,args[5])
+					distNearestNeighbors = parse(Float64,args[6])
+					plotDims = parse(Int,args[7])
+					rundimreduction(dataset,dimReductionMethod,sampleMethod, sampleAnnotation, timeAnnotation, kNearestNeighbors, distNearestNeighbors, plotDims)
 				catch e
-					println("Failed to run PMA: ", sprint(showerror, e))
-				end
-			elseif msg.first == "runpca" # TODO: merge with PMA code above?
-				println("Running PCA")
-				try
-					isempty(dataset.errorMsg) || error(dataset.errorMsg)
-					args = msg.second
-					sampleMethod = Symbol(args[1])
-					sampleAnnotation = Symbol(args[2])
-					timeAnnotation = Symbol(args[3])
-					kNearestNeighbors = parse(Int,args[4])
-					distNearestNeighbors = parse(Float64,args[5])
-					plotDims = parse(Int,args[6])
-					runpca(dataset,sampleMethod, sampleAnnotation, timeAnnotation, kNearestNeighbors, distNearestNeighbors, plotDims)
-				catch e
-					println("Failed to run PCA: ", sprint(showerror, e))
+					println("Failed to run ", dimReductionMethod,": ", sprint(showerror, e))
 				end
 			else
 				@warn "Unknown message type: $(msg.first)"

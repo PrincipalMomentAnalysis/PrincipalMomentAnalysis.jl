@@ -1,4 +1,13 @@
 <script type="text/javascript">
+    function getDimReductionMethod() {
+        var g = document.getElementById("dimReductionMethodGroup").getElementsByTagName("input");
+        for(var i = 0; i < g.length; i++){
+            if(g[i].checked) {
+                return g[i].value;
+            }
+        }
+        return "";
+    }
     function getSampleMode() {
         var g = document.getElementById("sampleMethodGroup").getElementsByTagName("input");
         for(var i = 0; i < g.length; i++){
@@ -18,27 +27,45 @@
         return "";
     }
 </script>
+<style>
+    .group {
+        border: 1px solid gray;
+        margin: 1px;
+        padding: 4px;
+    }
+</style>
 <div>
     <button onclick='var electron = require("electron"); var fp = electron.remote.dialog.showOpenDialog({properties: ["openFile"]}); if (!(fp===undefined)) { Blink.msg("gedataopen",fp) }'>Open Qlucore .gedata file</button>
-    <p id="info">Please select file.<p/>
-    <div>
-        <p>Choose Method:</p>
+    <div class="group">
+        <p id="info">Please select file.</p>
+    </div>
+    <div class="group">
+        <div id="dimReductionMethodGroup">
+            <p>Dimension Reduction:</p>
+            <!--input type="radio" name="dimreductionmethod" value="PMA" onclick='Blink.msg("dimreductionmethod","PMA")' checked>PMA-->
+            <!--input type="radio" name="dimreductionmethod" value="PCA" onclick='Blink.msg("dimreductionmethod","PCA")'        >PCA-->
+            <input type="radio" name="dimreductionmethod" value="PMA" checked>PMA
+            <input type="radio" name="dimreductionmethod" value="PCA"        >PCA
+        </div>
         <div id="sampleMethodGroup">
+            <p>Sample Graph Method:</p>
             <input type="radio" name="samplemethod" value="SA"   onclick='Blink.msg("samplemethod","SA")'   checked>Sample Annotation<br>
             <input type="radio" name="samplemethod" value="Time" onclick='Blink.msg("samplemethod","Time")'        >Time Series<br>
             <input type="radio" name="samplemethod" value="NN"   onclick='Blink.msg("samplemethod","NN")'          >Nearest Neighbor<br>
             <input type="radio" name="samplemethod" value="NNSA" onclick='Blink.msg("samplemethod","NNSA")'        >Nearest Neighbor within groups<br>
         </div>
-        <p>Choose sample annotation:</p>
-        <select id="sampleAnnot"></select>
-        <p>Choose time annotation:</p>
-        <select id="timeAnnot"></select>
-        <p>Number of Nearest Neighbors:</p>
-        <input type="number" id="kNearestNeighbors" min="0" max="1000000" value="0">
-        <p>Nearest Neighbors distance:</p>
-        <input type="range" id="distNearestNeighbors" min="0" max="1" step="0.001" value="0">
+        <div>
+            <p>Choose sample annotation:</p>
+            <select id="sampleAnnot"></select>
+            <p>Choose time annotation:</p>
+            <select id="timeAnnot"></select>
+            <p>Number of Nearest Neighbors:</p>
+            <input type="number" id="kNearestNeighbors" min="0" max="1000000" value="0">
+            <p>Nearest Neighbors distance:</p>
+            <input type="range" id="distNearestNeighbors" min="0" max="1" step="0.001" value="0">
+        </div>
     </div>
-    <div>
+    <div class="group">
         <p>Plot settings:</p>
         <p>Plot dimension:</p>
         <div id="plotDimsGroup">
@@ -46,6 +73,5 @@
             <input type="radio" name="plotdims" value="3" checked>3
         </div>
     </div>
-    <button onclick='Blink.msg("runpma", [getSampleMode(), document.getElementById("sampleAnnot").value, document.getElementById("timeAnnot").value, document.getElementById("kNearestNeighbors").value, document.getElementById("distNearestNeighbors").value, getPlotDims()])'>Run PMA</button>
-    <button onclick='Blink.msg("runpca", [getSampleMode(), document.getElementById("sampleAnnot").value, document.getElementById("timeAnnot").value, document.getElementById("kNearestNeighbors").value, document.getElementById("distNearestNeighbors").value, getPlotDims()])'>Run PCA</button>
+    <button onclick='Blink.msg("showplot", [getDimReductionMethod(), getSampleMode(), document.getElementById("sampleAnnot").value, document.getElementById("timeAnnot").value, document.getElementById("kNearestNeighbors").value, document.getElementById("distNearestNeighbors").value, getPlotDims()])'>Show plot</button>
 </div>
