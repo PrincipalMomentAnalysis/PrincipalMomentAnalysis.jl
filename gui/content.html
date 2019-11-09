@@ -33,6 +33,10 @@
         margin: 1px;
         padding: 4px;
     }
+    .subtitle {
+        text-align: center;
+        font-weight: bold;
+    }
 </style>
 <div>
     <button onclick='var electron = require("electron"); var fp = electron.remote.dialog.showOpenDialog({properties: ["openFile"]}); if (!(fp===undefined)) { Blink.msg("gedataopen",fp) }'>Open Qlucore .gedata file</button>
@@ -40,12 +44,13 @@
         <p id="info">Please select file.</p>
     </div>
     <div class="group">
+        <p class="subtitle">Parameters</p>
         <div id="dimReductionMethodGroup">
-            <p>Dimension Reduction:</p>
-            <!--input type="radio" name="dimreductionmethod" value="PMA" onclick='Blink.msg("dimreductionmethod","PMA")' checked>PMA-->
-            <!--input type="radio" name="dimreductionmethod" value="PCA" onclick='Blink.msg("dimreductionmethod","PCA")'        >PCA-->
-            <input type="radio" name="dimreductionmethod" value="PMA" checked>PMA
-            <input type="radio" name="dimreductionmethod" value="PCA"        >PCA
+            <p>
+                Dimension Reduction:
+                <input type="radio" name="dimreductionmethod" value="PMA" checked>PMA
+                <input type="radio" name="dimreductionmethod" value="PCA"        >PCA
+            </p>
         </div>
         <div id="sampleMethodGroup">
             <p>Sample Graph Method:</p>
@@ -66,12 +71,49 @@
         </div>
     </div>
     <div class="group">
-        <p>Plot settings:</p>
-        <p>Plot dimension:</p>
+        <p class="subtitle">Plot</p>
         <div id="plotDimsGroup">
-            <input type="radio" name="plotdims" value="2"        >2
-            <input type="radio" name="plotdims" value="3" checked>3
+            <p>
+                Plot dimension:
+                    <input type="radio" name="plotdims" value="2"        >2
+                    <input type="radio" name="plotdims" value="3" checked>3
+            </p>
         </div>
+        <button onclick='Blink.msg("showplot", [getDimReductionMethod(), getSampleMode(), document.getElementById("sampleAnnot").value, document.getElementById("timeAnnot").value, document.getElementById("kNearestNeighbors").value, document.getElementById("distNearestNeighbors").value, getPlotDims()])'>Show plot</button>
     </div>
-    <button onclick='Blink.msg("showplot", [getDimReductionMethod(), getSampleMode(), document.getElementById("sampleAnnot").value, document.getElementById("timeAnnot").value, document.getElementById("kNearestNeighbors").value, document.getElementById("distNearestNeighbors").value, getPlotDims()])'>Show plot</button>
+    <div class="group">
+        <p class="subtitle">Export</p>
+        <p>Variable Id:</p>
+        <select id="exportVarAnnot"></select>
+        <p>Dimension(s):</p>
+        <select id="exportDim">
+            <option value= "1"         > 1</option>
+            <option value= "2"         > 2</option>
+            <option value= "3" selected> 3</option>
+            <option value= "4"         > 4</option>
+            <option value= "5"         > 5</option>
+            <option value= "6"         > 6</option>
+            <option value= "7"         > 7</option>
+            <option value= "8"         > 8</option>
+            <option value= "9"         > 9</option>
+            <option value="10"         >10</option>
+        </select>
+        <p>Sort:</p>
+        <select id="exportSort">
+            <option value= "Abs"        selected>Absolute Value</option>
+            <option value= "Descending"         >Descending</option>
+        </select>
+        <br>
+
+        <button onclick='var electron = require("electron");
+                         var fp = electron.remote.dialog.showSaveDialog(null);
+                         if (!(fp===undefined)) { Blink.msg("exportloadings",[getDimReductionMethod(), getSampleMode(), document.getElementById("sampleAnnot").value, document.getElementById("timeAnnot").value, document.getElementById("kNearestNeighbors").value, document.getElementById("distNearestNeighbors").value, fp, document.getElementById("exportVarAnnot").value, "All",      document.getElementById("exportDim").value, document.getElementById("exportSort").value]) }'>
+            Export all (unsorted)
+        </button>
+        <button onclick='var electron = require("electron");
+                         var fp = electron.remote.dialog.showSaveDialog(null);
+                         if (!(fp===undefined)) { Blink.msg("exportloadings",[getDimReductionMethod(), getSampleMode(), document.getElementById("sampleAnnot").value, document.getElementById("timeAnnot").value, document.getElementById("kNearestNeighbors").value, document.getElementById("distNearestNeighbors").value, fp, document.getElementById("exportVarAnnot").value, "Selected", document.getElementById("exportDim").value, document.getElementById("exportSort").value]) }'>
+            Export selected dimension (sorted)
+        </button>
+    </div>
 </div>
