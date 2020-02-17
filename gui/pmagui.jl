@@ -104,8 +104,8 @@ function setupgraph(st, input::Dict{String,Any})
 	method      = Symbol(input["method"])
 	sampleAnnot = Symbol(input["sampleannot"])
 	timeAnnot   = Symbol(input["timeannot"])
-	kNN         = input["knearestneighbors"]
-	distNN      = input["distnearestneighbors"]
+	kNN         = parse(Int,input["knearestneighbors"])
+	distNN      = parse(Float64, input["distnearestneighbors"])
 	@assert method in (:SA,:Time,:NN,:NNSA)
 
 	G = nothing
@@ -115,9 +115,9 @@ function setupgraph(st, input::Dict{String,Any})
 		eltype(sampleData.sa[!,timeAnnot])<:Number || @warn "Expected time annotation to contain numbers, got $(eltype(sampleData.sa[!,timeAnnot])). Fallback to default sorting."
 		G = buildgraph(sampleData.sa[!,sampleAnnot], sampleData.sa[!,timeAnnot])
 	elseif method == :NN
-		G = neighborhoodgraph(X,kNearestNeighbors,distNearestNeighbors,50);
+		G = neighborhoodgraph(sampleData.data, kNN, distNN, 50);
 	elseif method == :NNSA
-		G = neighborhoodgraph(X,kNearestNeighbors,distNearestNeighbors,50; groupBy=sampleData.sa[!,sampleAnnot]);
+		G = neighborhoodgraph(sampleData.data, kNN, distNN, 50; groupBy=sampleData.sa[!,sampleAnnot]);
 	end
 	G
 end
