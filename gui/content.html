@@ -1,6 +1,6 @@
 <script type="text/javascript">
-    function getDimReductionMethod() {
-        var g = document.getElementById("dimReductionMethodGroup").getElementsByTagName("input");
+    function getChecked(groupName) {
+        var g = document.getElementById(groupName).getElementsByTagName("input");
         for(var i = 0; i < g.length; i++){
             if(g[i].checked) {
                 return g[i].value;
@@ -8,23 +8,53 @@
         }
         return "";
     }
-    function getSampleMode() {
-        var g = document.getElementById("sampleMethodGroup").getElementsByTagName("input");
-        for(var i = 0; i < g.length; i++){
-            if(g[i].checked) {
-                return g[i].value;
-            }
-        }
-        return "";
+    function updateSampleGraphMethod(method) {
+        setValue("samplegraphmethod", method)
+
+        document.getElementById("sampleAnnot").disabled = method=="NN"
+        document.getElementById("timeAnnot").disabled = method!="Time"
+        enabled = method=="NN" || method=="NNSA"
+        document.getElementById("kNearestNeighbors").disabled = !enabled
+        document.getElementById("distNearestNeighbors").disabled = !enabled
     }
-    function getPlotDims() {
-        var g = document.getElementById("plotDimsGroup").getElementsByTagName("input");
-        for(var i = 0; i < g.length; i++){
-            if(g[i].checked) {
-                return g[i].value;
-            }
+    function sendMessage(data) {
+        Blink.msg("msg", data)
+    }
+    function setValue(name, value) {
+        // Blink.msg("msg",["setvalue", name, value])
+        sendMessage(["setvalue", name, value])
+    }
+    function init() {
+        updateSampleGraphMethod("SA")
+        setValue("normalizemethod",      getChecked("normalizeMethodGroup"))
+        setValue("dimreductionmethod",   getChecked("dimReductionMethodGroup"))
+        setValue("plotdims",             getChecked("plotDimsGroup"))
+        setValue("knearestneighbors",    document.getElementById("kNearestNeighbors").value)
+        setValue("distnearestneighbors", document.getElementById("distNearestNeighbors").value)
+    }
+    function setSampleStatus(status) {
+        document.getElementById("info").innerHTML = status;
+    }
+    function setDropDownItems(id, v) {
+        var dropdown = document.getElementById(id);
+        var val = "sampleName"
+        if (v.includes(dropdown.value)) {
+            val = dropdown.value;
         }
-        return "";
+        dropdown.options.length = 0;
+        for(var i = 0; i < v.length; i++) {
+            var opt = document.createElement("option");
+            opt.value = v[i];
+            opt.text = v[i];
+            dropdown.options.add(opt);
+        }
+        dropdown.value = val;
+    }
+    function setSampleAnnotNames(v) {
+        setDropDownItems("sampleAnnot", v);
+        setValue("sampleannot", document.getElementById("sampleAnnot").value)
+        setDropDownItems("timeAnnot", v);
+        setValue("timeannot", document.getElementById("timeAnnot").value)
     }
 </script>
 <style>
@@ -39,81 +69,58 @@
     }
 </style>
 <div>
-    <button onclick='var electron = require("electron"); var fp = electron.remote.dialog.showOpenDialog({properties: ["openFile"]}); if (!(fp===undefined)) { Blink.msg("gedataopen",fp) }'>Open Qlucore .gedata file</button>
     <div class="group">
-        <p id="info">Please select file.</p>
+        <p class="subtitle">Samples</p>
+        <button onclick='var electron = require("electron"); var fp = electron.remote.dialog.showOpenDialog({properties: ["openFile"]}); if (!(fp===undefined)) { setValue("samplefilepath", fp[0]); sendMessage(["loadsample"]); }'>Load sample</button>
+        <div class="group">
+            <p id="info"></p>
+        </div>
+    </div>
+    <div class="group">
+        <p class="subtitle">Normalize</p>
+        <p id="normalizeMethodGroup">
+            <input type="radio" name="normalizemethodgroup" value="Mean=0"       onclick='setValue("normalizemethod", "Mean=0")'       checked>Mean=0
+            <input type="radio" name="normalizemethodgroup" value="Mean=0,Std=1" onclick='setValue("normalizemethod", "Mean=0,Std=1")'        >Mean=0,Std=1
+        </p>
     </div>
     <div class="group">
         <p class="subtitle">Parameters</p>
         <div id="dimReductionMethodGroup">
             <p>
                 Dimension Reduction:
-                <input type="radio" name="dimreductionmethod" value="PMA" checked>PMA
-                <input type="radio" name="dimreductionmethod" value="PCA"        >PCA
+                <input type="radio" name="dimreductionmethodgroup" value="PMA" onclick='setValue("dimreductionmethod", "PMA")' disabled>PMA
+                <input type="radio" name="dimreductionmethodgroup" value="PCA" onclick='setValue("dimreductionmethod", "PCA")' checked >PCA
             </p>
         </div>
         <div id="sampleMethodGroup">
             <p>Sample Graph Method:</p>
-            <input type="radio" name="samplemethod" value="SA"   onclick='Blink.msg("samplemethod","SA")'   checked>Sample Annotation<br>
-            <input type="radio" name="samplemethod" value="Time" onclick='Blink.msg("samplemethod","Time")'        >Time Series<br>
-            <input type="radio" name="samplemethod" value="NN"   onclick='Blink.msg("samplemethod","NN")'          >Nearest Neighbor<br>
-            <input type="radio" name="samplemethod" value="NNSA" onclick='Blink.msg("samplemethod","NNSA")'        >Nearest Neighbor within groups<br>
+            <input type="radio" name="samplemethod" value="SA"   onclick='updateSampleGraphMethod("SA")'   checked>Sample Annotation<br>
+            <input type="radio" name="samplemethod" value="Time" onclick='updateSampleGraphMethod("Time")'        >Time Series<br>
+            <input type="radio" name="samplemethod" value="NN"   onclick='updateSampleGraphMethod("NN")'          >Nearest Neighbor<br>
+            <input type="radio" name="samplemethod" value="NNSA" onclick='updateSampleGraphMethod("NNSA")'        >Nearest Neighbor within groups<br>
         </div>
         <div>
             <p>Choose sample annotation:</p>
-            <select id="sampleAnnot"></select>
+            <select id="sampleAnnot" onchange='setValue("sampleannot",this.value)'></select>
             <p>Choose time annotation:</p>
-            <select id="timeAnnot"></select>
+            <select id="timeAnnot" onchange='setValue("timeannot",this.value)'></select>
             <p>Number of Nearest Neighbors:</p>
-            <input type="number" id="kNearestNeighbors" min="0" max="1000000" value="0">
+            <input type="number" id="kNearestNeighbors" min="0" max="1000000" value="0" onchange='setValue("knearestneighbors",this.value)'>
             <p>Nearest Neighbors distance:</p>
-            <input type="range" id="distNearestNeighbors" min="0" max="1" step="0.001" value="0">
-        </div>
+            <input type="range" id="distNearestNeighbors" min="0" max="1" step="0.001" value="0" onchange='setValue("distnearestneighbors",this.value)'> </div>
     </div>
     <div class="group">
         <p class="subtitle">Plot</p>
         <div id="plotDimsGroup">
             <p>
                 Plot dimension:
-                    <input type="radio" name="plotdims" value="2"        >2
-                    <input type="radio" name="plotdims" value="3" checked>3
+                    <!-- <input type="radio" name="plotdims" value="2"        >2 -->
+                    <input type="radio" name="plotdims" value="3" onclick='setValue("plotdims", "3")' checked>3
             </p>
         </div>
-        <button onclick='Blink.msg("showplot", [getDimReductionMethod(), getSampleMode(), document.getElementById("sampleAnnot").value, document.getElementById("timeAnnot").value, document.getElementById("kNearestNeighbors").value, document.getElementById("distNearestNeighbors").value, getPlotDims()])'>Show plot</button>
+        <button onclick='sendMessage(["showplot"])'>Show plot</button>
     </div>
-    <div class="group">
-        <p class="subtitle">Export</p>
-        <p>Variable Id:</p>
-        <select id="exportVarAnnot"></select>
-        <p>Dimension(s):</p>
-        <select id="exportDim">
-            <option value= "1"         > 1</option>
-            <option value= "2"         > 2</option>
-            <option value= "3" selected> 3</option>
-            <option value= "4"         > 4</option>
-            <option value= "5"         > 5</option>
-            <option value= "6"         > 6</option>
-            <option value= "7"         > 7</option>
-            <option value= "8"         > 8</option>
-            <option value= "9"         > 9</option>
-            <option value="10"         >10</option>
-        </select>
-        <p>Sort:</p>
-        <select id="exportSort">
-            <option value= "Abs"        selected>Absolute Value</option>
-            <option value= "Descending"         >Descending</option>
-        </select>
-        <br>
-
-        <button onclick='var electron = require("electron");
-                         var fp = electron.remote.dialog.showSaveDialog(null);
-                         if (!(fp===undefined)) { Blink.msg("exportloadings",[getDimReductionMethod(), getSampleMode(), document.getElementById("sampleAnnot").value, document.getElementById("timeAnnot").value, document.getElementById("kNearestNeighbors").value, document.getElementById("distNearestNeighbors").value, fp, document.getElementById("exportVarAnnot").value, "All",      document.getElementById("exportDim").value, document.getElementById("exportSort").value]) }'>
-            Export all (unsorted)
-        </button>
-        <button onclick='var electron = require("electron");
-                         var fp = electron.remote.dialog.showSaveDialog(null);
-                         if (!(fp===undefined)) { Blink.msg("exportloadings",[getDimReductionMethod(), getSampleMode(), document.getElementById("sampleAnnot").value, document.getElementById("timeAnnot").value, document.getElementById("kNearestNeighbors").value, document.getElementById("distNearestNeighbors").value, fp, document.getElementById("exportVarAnnot").value, "Selected", document.getElementById("exportDim").value, document.getElementById("exportSort").value]) }'>
-            Export selected dimension (sorted)
-        </button>
+    <div class="group" align="center">
+        <button onclick='sendMessage(["cancel"])'>Cancel processing</button>
     </div>
 </div>
