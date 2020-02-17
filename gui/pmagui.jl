@@ -143,18 +143,15 @@ function dimreduction(st, input::Dict{String,Any})
 end
 
 function makeplot(st, input::Dict{String,Any})
-	# add_dependency!(scheduler, dimreductionID=>makeplotID, "reduced")
-	# add_dependency!(scheduler, getparamjobid(scheduler,paramIDs,"plotdims")=>makeplotID, "plotdims")
-	# add_dependency!(scheduler, getparamjobid(scheduler,paramIDs,"dimreductionmethod")=>makeplotID, "dimreductionmethod")
-	# add_dependency!(scheduler, getparamjobid(scheduler,paramIDs,"sampleannot")=>setupGraphID, "sampleannot")
-	# add_dependency!(scheduler, setupGraphID=>makeplotID, "samplegraph")
-
-	@assert length(input)==5
+	@assert length(input)==8
 	reduced            = input["reduced"]::ReducedSampleData
-	plotDims           = parse(Int,input["plotdims"])
 	dimReductionMethod = Symbol(input["dimreductionmethod"])
 	sampleAnnot        = Symbol(input["sampleannot"])
 	sampleGraph        = input["samplegraph"]
+	plotDims           = parse(Int,input["plotdims"])
+	plotWidth          = parse(Int,input["plotwidth"])
+	plotHeight         = parse(Int,input["plotheight"])
+	markerSize         = parse(Float64,input["markersize"])
 
 
 	@assert plotDims==3 "Only 3 plotting dims supported for now"
@@ -175,12 +172,11 @@ function makeplot(st, input::Dict{String,Any})
 
 	plotArgs = nothing
 	if plotDims==3
-		markerSize = 4
 		lineWidth = 1
 		plotArgs = plotsimplices(reduced.F.V,reduced.sa,nothing,colorBy,colorDict, title=title,
 		                         drawTriangles=drawTriangles, drawLines=drawLines, drawPoints=true,
 		                         opacity=opacity, markerSize=markerSize, lineWidth=lineWidth,
-		                         width=1024, height=768)
+		                         width=plotWidth, height=plotHeight)
 	end
 	plotArgs
 end
@@ -235,10 +231,13 @@ function JobGraph()
 
 	makeplotID = createjob!(makeplot, scheduler, "makeplot")
 	add_dependency!(scheduler, dimreductionID=>makeplotID, "reduced")
-	add_dependency!(scheduler, getparamjobid(scheduler,paramIDs,"plotdims")=>makeplotID, "plotdims")
 	add_dependency!(scheduler, getparamjobid(scheduler,paramIDs,"dimreductionmethod")=>makeplotID, "dimreductionmethod")
 	add_dependency!(scheduler, getparamjobid(scheduler,paramIDs,"sampleannot")=>makeplotID, "sampleannot")
 	add_dependency!(scheduler, setupGraphID=>makeplotID, "samplegraph")
+	add_dependency!(scheduler, getparamjobid(scheduler,paramIDs,"plotdims")=>makeplotID, "plotdims")
+	add_dependency!(scheduler, getparamjobid(scheduler,paramIDs,"plotwidth")=>makeplotID, "plotwidth")
+	add_dependency!(scheduler, getparamjobid(scheduler,paramIDs,"plotheight")=>makeplotID, "plotheight")
+	add_dependency!(scheduler, getparamjobid(scheduler,paramIDs,"markersize")=>makeplotID, "markersize")
 
 
 	JobGraph(scheduler,
