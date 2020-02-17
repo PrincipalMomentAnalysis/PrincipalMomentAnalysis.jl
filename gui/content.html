@@ -34,6 +34,9 @@
         setValue("plotwidth",            document.getElementById("plotWidth").value);
         setValue("plotheight",           document.getElementById("plotHeight").value);
         setValue("markersize",           document.getElementById("markerSize").value);
+        setValue("showpoints",           document.getElementById("showPoints").checked.toString());
+        setValue("showlines",            document.getElementById("showLines").checked.toString());
+        setValue("showtriangles",        document.getElementById("showTriangles").checked.toString());
     }
     function setSampleStatus(status) {
         document.getElementById("info").innerHTML = status;
@@ -130,6 +133,11 @@
             </p>
             <p>
                 Marker size: <input type="number" id="markerSize"  min="0" max="100" value="4" step="0.01" onchange='setValue("markersize",this.value)'>
+            </p>
+            <p>
+                Show points: <input type="checkbox" id="showPoints"    onclick='setValue("showpoints",   this.checked.toString())' checked>
+                lines:       <input type="checkbox" id="showLines"     onclick='setValue("showlines",    this.checked.toString())'        >
+                triangles:   <input type="checkbox" id="showTriangles" onclick='setValue("showtriangles",this.checked.toString())'        >
             </p>
         </div>
         <button onclick='sendMessage(["showplot"])'>Show plot</button>

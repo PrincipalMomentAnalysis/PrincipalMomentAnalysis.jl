@@ -143,7 +143,7 @@ function dimreduction(st, input::Dict{String,Any})
 end
 
 function makeplot(st, input::Dict{String,Any})
-	@assert length(input)==8
+	@assert length(input)==11
 	reduced            = input["reduced"]::ReducedSampleData
 	dimReductionMethod = Symbol(input["dimreductionmethod"])
 	sampleAnnot        = Symbol(input["sampleannot"])
@@ -152,14 +152,15 @@ function makeplot(st, input::Dict{String,Any})
 	plotWidth          = parse(Int,input["plotwidth"])
 	plotHeight         = parse(Int,input["plotheight"])
 	markerSize         = parse(Float64,input["markersize"])
+	showPoints         = parse(Bool,input["showpoints"])
+	showLines          = parse(Bool,input["showlines"])
+	showTriangles      = parse(Bool,input["showtriangles"])
 
 
 	@assert plotDims==3 "Only 3 plotting dims supported for now"
 
 	opacity = 0.05
 	title = dimReductionMethod
-	drawTriangles = false
-	drawLines = false
 
 	colorBy = Symbol(sampleAnnot)
 
@@ -173,8 +174,8 @@ function makeplot(st, input::Dict{String,Any})
 	plotArgs = nothing
 	if plotDims==3
 		lineWidth = 1
-		plotArgs = plotsimplices(reduced.F.V,reduced.sa,nothing,colorBy,colorDict, title=title,
-		                         drawTriangles=drawTriangles, drawLines=drawLines, drawPoints=true,
+		plotArgs = plotsimplices(reduced.F.V,reduced.sa,sampleGraph,colorBy,colorDict, title=title,
+		                         drawPoints=showPoints, drawLines=showLines, drawTriangles=showTriangles,
 		                         opacity=opacity, markerSize=markerSize, lineWidth=lineWidth,
 		                         width=plotWidth, height=plotHeight)
 	end
@@ -238,6 +239,9 @@ function JobGraph()
 	add_dependency!(scheduler, getparamjobid(scheduler,paramIDs,"plotwidth")=>makeplotID, "plotwidth")
 	add_dependency!(scheduler, getparamjobid(scheduler,paramIDs,"plotheight")=>makeplotID, "plotheight")
 	add_dependency!(scheduler, getparamjobid(scheduler,paramIDs,"markersize")=>makeplotID, "markersize")
+	add_dependency!(scheduler, getparamjobid(scheduler,paramIDs,"showpoints")=>makeplotID, "showpoints")
+	add_dependency!(scheduler, getparamjobid(scheduler,paramIDs,"showlines")=>makeplotID, "showlines")
+	add_dependency!(scheduler, getparamjobid(scheduler,paramIDs,"showtriangles")=>makeplotID, "showtriangles")
 
 
 	JobGraph(scheduler,
