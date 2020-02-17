@@ -37,7 +37,7 @@
     }
     function setDropDownItems(id, v) {
         var dropdown = document.getElementById(id);
-        var val = "sampleName"
+        var val
         if (v.includes(dropdown.value)) {
             val = dropdown.value;
         }
@@ -47,6 +47,9 @@
             opt.value = v[i];
             opt.text = v[i];
             dropdown.options.add(opt);
+        }
+        if (val===undefined && v.length>0) {
+            val = v[0]
         }
         dropdown.value = val;
     }
@@ -79,6 +82,7 @@
     <div class="group">
         <p class="subtitle">Normalize</p>
         <p id="normalizeMethodGroup">
+            <input type="radio" name="normalizemethodgroup" value="None"         onclick='setValue("normalizemethod", "None")'                >None
             <input type="radio" name="normalizemethodgroup" value="Mean=0"       onclick='setValue("normalizemethod", "Mean=0")'       checked>Mean=0
             <input type="radio" name="normalizemethodgroup" value="Mean=0,Std=1" onclick='setValue("normalizemethod", "Mean=0,Std=1")'        >Mean=0,Std=1
         </p>
@@ -88,8 +92,8 @@
         <div id="dimReductionMethodGroup">
             <p>
                 Dimension Reduction:
-                <input type="radio" name="dimreductionmethodgroup" value="PMA" onclick='setValue("dimreductionmethod", "PMA")' disabled>PMA
-                <input type="radio" name="dimreductionmethodgroup" value="PCA" onclick='setValue("dimreductionmethod", "PCA")' checked >PCA
+                <input type="radio" name="dimreductionmethodgroup" value="PMA" onclick='setValue("dimreductionmethod", "PMA")' checked>PMA
+                <input type="radio" name="dimreductionmethodgroup" value="PCA" onclick='setValue("dimreductionmethod", "PCA")'        >PCA
             </p>
         </div>
         <div id="sampleMethodGroup">

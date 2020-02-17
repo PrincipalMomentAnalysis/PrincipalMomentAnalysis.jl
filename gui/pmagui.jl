@@ -9,9 +9,10 @@ using Blink
 using JSExpr
 # using DataStructures
 
-# using Colors
-# using PlotlyJS
+using Colors
+using PlotlyJS
 # using Measures
+using IterTools
 
 # using DelimitedFiles
 
@@ -30,6 +31,8 @@ struct JobGraph
 	fileIOLock::ReentrantLock
 	paramIDs::Dict{String,JobID}
 	loadSampleID::JobID
+	normalizeID::JobID
+	setupGraphID::JobID
 	dimreductionID::JobID
 	makeplotID::JobID
 end
@@ -43,9 +46,9 @@ end
 SampleData() = SampleData(zeros(0,0),DataFrame(),DataFrame(),"")
 
 struct ReducedSampleData
-	F::SVD
-	variables::DataFrame
-	samples::DataFrame
+	F::Factorization
+	sa::DataFrame
+	va::DataFrame
 end
 
 
@@ -57,17 +60,129 @@ function loadsample(st, input::Dict{String,Any})::SampleData
 	filepath::String
 	isempty(filepath) && return Nothing
 	@assert isfile(filepath) "Sample file not found: \"$filepath\""
-	data,sa,va = Qlucore.read(filepath)
+	originalData,sa,va = Qlucore.read(filepath)
+
+	data = zeros(size(originalData))
+	if any(ismissing,originalData)
+		# Replace missing values with mean over samples with nonmissing data
+		println("Reconstructing missing values (taking the mean over all nonmissing samples)")
+		for i=1:size(data,1)
+			m = ismissing.(originalData[i,:])
+			data[i,.!m] .= originalData[i,.!m]
+			data[i,m] .= mean(originalData[i,.!m])
+		end
+	else
+		data .= originalData # just copy
+	end
+
 	SampleData(data,sa,va,filepath)
 end
 
 
+# callback function
+showsampleannotnames(sampleData, toGUI) = put!(toGUI, :displaysampleannotnames=>names(sampleData.sa))
+
+
+function normalizesample(st, input::Dict{String,Any})
+	@assert length(input)==2
+	sampleData = input["sampledata"]
+	method = input["method"]
+	@assert method in ("None", "Mean=0", "Mean=0,Std=1")
+	X = sampleData.data
+	if method == "Mean=0,Std=1"
+		X = normalizemeanstd(X)
+	elseif method == "Mean=0"
+		X = normalizemean(X)
+	end
+	SampleData(X,sampleData.sa,sampleData.va,sampleData.filepath)
+end
+
+
+function setupgraph(st, input::Dict{String,Any})
+	@assert length(input)==6
+	sampleData  = input["sampledata"]
+	method      = Symbol(input["method"])
+	sampleAnnot = Symbol(input["sampleannot"])
+	timeAnnot   = Symbol(input["timeannot"])
+	kNN         = input["knearestneighbors"]
+	distNN      = input["distnearestneighbors"]
+	@assert method in (:SA,:Time,:NN,:NNSA)
+
+	G = nothing
+	if method == :SA
+		G = buildgraph(sampleData.sa[!,sampleAnnot])
+	elseif method == :Time
+		eltype(sampleData.sa[!,timeAnnot])<:Number || @warn "Expected time annotation to contain numbers, got $(eltype(sampleData.sa[!,timeAnnot])). Fallback to default sorting."
+		G = buildgraph(sampleData.sa[!,sampleAnnot], sampleData.sa[!,timeAnnot])
+	elseif method == :NN
+		G = neighborhoodgraph(X,kNearestNeighbors,distNearestNeighbors,50);
+	elseif method == :NNSA
+		G = neighborhoodgraph(X,kNearestNeighbors,distNearestNeighbors,50; groupBy=sampleData.sa[!,sampleAnnot]);
+	end
+	G
+end
+
+
 function dimreduction(st, input::Dict{String,Any})
-	nothing
+	@assert length(input)==3
+	sampleData  = input["sampledata"]
+	sampleGraph = input["samplegraph"]
+	method      = Symbol(input["method"])
+
+	X = sampleData.data::Matrix{Float64}
+
+	# dim = 3
+	dim = min(10, size(X)...)
+
+	if method==:PMA
+		F = pma(X, sampleGraph, nsv=dim)
+	elseif method==:PCA
+		F = svdbyeigen(X,nsv=dim)
+	end
+	ReducedSampleData(F, sampleData.sa, sampleData.va)
 end
 
 function makeplot(st, input::Dict{String,Any})
-	nothing
+	# add_dependency!(scheduler, dimreductionID=>makeplotID, "reduced")
+	# add_dependency!(scheduler, getparamjobid(scheduler,paramIDs,"plotdims")=>makeplotID, "plotdims")
+	# add_dependency!(scheduler, getparamjobid(scheduler,paramIDs,"dimreductionmethod")=>makeplotID, "dimreductionmethod")
+	# add_dependency!(scheduler, getparamjobid(scheduler,paramIDs,"sampleannot")=>setupGraphID, "sampleannot")
+	# add_dependency!(scheduler, setupGraphID=>makeplotID, "samplegraph")
+
+	@assert length(input)==5
+	reduced            = input["reduced"]::ReducedSampleData
+	plotDims           = parse(Int,input["plotdims"])
+	dimReductionMethod = Symbol(input["dimreductionmethod"])
+	sampleAnnot        = Symbol(input["sampleannot"])
+	sampleGraph        = input["samplegraph"]
+
+
+	@assert plotDims==3 "Only 3 plotting dims supported for now"
+
+	opacity = 0.05
+	title = dimReductionMethod
+	drawTriangles = false
+	drawLines = false
+
+	colorBy = Symbol(sampleAnnot)
+
+	# TODO: handle missing values in sample annotations?
+
+	colorDict = nothing
+	if !(eltype(reduced.sa[!,colorBy]) <: Real)
+		colorDict = colordict(reduced.sa[!,colorBy])
+	end
+
+	plotArgs = nothing
+	if plotDims==3
+		markerSize = 4
+		lineWidth = 1
+		plotArgs = plotsimplices(reduced.F.V,reduced.sa,nothing,colorBy,colorDict, title=title,
+		                         drawTriangles=drawTriangles, drawLines=drawLines, drawPoints=true,
+		                         opacity=opacity, markerSize=markerSize, lineWidth=lineWidth,
+		                         width=1024, height=768)
+	end
+	plotArgs
 end
 
 showplot(plotArgs, toGUI::Channel) = put!(toGUI, :displayplot=>plotArgs)
@@ -85,14 +200,30 @@ function JobGraph()
 	loadSampleID = createjob!(loadsample, scheduler, "loadsample")
 	add_dependency!(scheduler, getparamjobid(scheduler,paramIDs,"samplefilepath")=>loadSampleID, "filepath")
 
+	normalizeID = createjob!(normalizesample, scheduler, "normalizesample")
+	add_dependency!(scheduler, loadSampleID=>normalizeID, "sampledata")
+	add_dependency!(scheduler, getparamjobid(scheduler,paramIDs,"normalizemethod")=>normalizeID, "method")
+
+	setupGraphID = createjob!(setupgraph, scheduler, "setupgraph")
+	add_dependency!(scheduler, normalizeID=>setupGraphID, "sampledata")
+	add_dependency!(scheduler, getparamjobid(scheduler,paramIDs,"samplegraphmethod")=>setupGraphID, "method")
+	add_dependency!(scheduler, getparamjobid(scheduler,paramIDs,"sampleannot")=>setupGraphID, "sampleannot")
+	add_dependency!(scheduler, getparamjobid(scheduler,paramIDs,"timeannot")=>setupGraphID, "timeannot")
+	add_dependency!(scheduler, getparamjobid(scheduler,paramIDs,"knearestneighbors")=>setupGraphID, "knearestneighbors")
+	add_dependency!(scheduler, getparamjobid(scheduler,paramIDs,"distnearestneighbors")=>setupGraphID, "distnearestneighbors")
+
 	dimreductionID = createjob!(dimreduction, scheduler, "dimreduction")
-	add_dependency!(scheduler, loadSampleID=>dimreductionID, "sampledata")
+	# add_dependency!(scheduler, loadSampleID=>dimreductionID, "sampledata")
+	add_dependency!(scheduler, normalizeID=>dimreductionID, "sampledata")
+	add_dependency!(scheduler, setupGraphID=>dimreductionID, "samplegraph")
 	add_dependency!(scheduler, getparamjobid(scheduler,paramIDs,"dimreductionmethod")=>dimreductionID, "method")
 
 	makeplotID = createjob!(makeplot, scheduler, "makeplot")
 	add_dependency!(scheduler, dimreductionID=>makeplotID, "reduced")
 	add_dependency!(scheduler, getparamjobid(scheduler,paramIDs,"plotdims")=>makeplotID, "plotdims")
 	add_dependency!(scheduler, getparamjobid(scheduler,paramIDs,"dimreductionmethod")=>makeplotID, "dimreductionmethod")
+	add_dependency!(scheduler, getparamjobid(scheduler,paramIDs,"sampleannot")=>makeplotID, "sampleannot")
+	add_dependency!(scheduler, setupGraphID=>makeplotID, "samplegraph")
 
 
 	JobGraph(scheduler,
@@ -100,6 +231,8 @@ function JobGraph()
 	         ReentrantLock(),
 	         paramIDs,
 	         loadSampleID,
+	         normalizeID,
+	         setupGraphID,
 	         dimreductionID,
 	         makeplotID)
 end
@@ -122,10 +255,9 @@ function process_thread(fromGUI::Channel, toGUI::Channel)
 		scheduler = jg.scheduler
 		lastSchedulerTime = UInt64(0)
 
-		#schedule!(x->showsampleannotnames(x,toGUI), scheduler, jg.sampleannotnamesID)
-
 
 		while true
+			# @info "[Processing] tick"
 			timeNow = time_ns()
 			if isready(fromGUI)
 				try
@@ -148,7 +280,8 @@ function process_thread(fromGUI::Channel, toGUI::Channel)
 							@warn "Unknown variable name: $varName"
 						end
 					elseif msgName == :loadsample
-						schedule!(scheduler, jg.loadSampleID)
+						# schedule!(scheduler, jg.loadSampleID)
+						schedule!(x->showsampleannotnames(x,toGUI), scheduler, jg.loadSampleID)
 					# elseif msgName == :dimreduction
 					# 	schedule!(scheduler, jg.dimreductionID)
 					elseif msgName == :showplot
@@ -175,7 +308,6 @@ function process_thread(fromGUI::Channel, toGUI::Channel)
 			else
 				sleep(0.05)
 			end
-			# @info "[Processing] tick"
 		end
 
 	catch e
@@ -216,8 +348,8 @@ function main()
 	body!(w,doc,async=false)
 	js(w, js"init()")
 
-	# Message handling loop
 	while isopen(w.content.sock) # is there a better way to check if the window is still open?
+		# @info "[GUI] tick"
 
 		if isready(toGUI)
 			msg = take!(toGUI)
@@ -235,13 +367,9 @@ function main()
 				processingThreadRunning = false
 			end
 		end
-
-		# @info "[GUI] tick"
-
 		# yield() # Allow GUI to run
 		sleep(0.05) # Allow GUI to run
 	end
-
 
 	@info "[GUI] Waiting for scheduler thread to finish."
 	processingThreadRunning && put!(fromGUI, :exit=>[])
