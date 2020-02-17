@@ -188,6 +188,21 @@ end
 showplot(plotArgs, toGUI::Channel) = put!(toGUI, :displayplot=>plotArgs)
 
 
+function samplestatus(jg::JobGraph)
+	#jg.scheduler, jg.paramIDs["samplefilepath"] == :__INVALID__ && return "Please load sample."
+	status = jobstatus(jg.scheduler, jg.loadSampleID)
+	status==:done && return "Sample loaded."
+	status in (:waiting,:running) && return "Loading sample."
+	"Please load sample."
+end
+
+function setsamplestatus(jg::JobGraph, toGUI::Channel)
+	sampleStatus = samplestatus(jg)
+	sampleStatus!=jg.sampleStatus[] && put!(toGUI, :samplestatus=>sampleStatus)
+	jg.sampleStatus[] = sampleStatus
+end
+
+
 function JobGraph()
 	scheduler = Scheduler()
 	# scheduler = Scheduler(threaded=false) # For DEBUG
@@ -293,7 +308,7 @@ function process_thread(fromGUI::Channel, toGUI::Channel)
 					@warn "[Processing] Error processing GUI message."
 					showerror(stdout, e, catch_backtrace())
 				end
-				# setsamplestatus(jg, toGUI)
+				setsamplestatus(jg, toGUI)
 			elseif wantstorun(scheduler) || (isactive(scheduler) && (timeNow-lastSchedulerTime)/1e9 > 5.0)
 				lastSchedulerTime = timeNow
 				try
@@ -304,7 +319,7 @@ function process_thread(fromGUI::Channel, toGUI::Channel)
 					@warn "[Processing] Error processing event."
 					showerror(stdout, e, catch_backtrace())
 				end
-				# setsamplestatus(jg, toGUI)
+				setsamplestatus(jg, toGUI)
 			else
 				sleep(0.05)
 			end
