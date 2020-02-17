@@ -9,6 +9,7 @@ include("pma.jl")
 include("util.jl")
 
 export
+	PMA,
 	pma,
 	_pma, # WIP
 	pma2, # WIP
@@ -19,6 +20,8 @@ export
 	simplexgraph2kernelmatrix,
 	simplexgraph2kernelmatrixroot,
 	normalizemean!,
-	normalizemeanstd!
+	normalizemean,
+	normalizemeanstd!,
+	normalizemeanstd
 
 end

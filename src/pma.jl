@@ -1,3 +1,10 @@
+struct PMA{T} <: Factorization{T}
+	U::Matrix{T}
+	S::Vector{T}
+	V::Matrix{T}
+	VV::Matrix{T}
+end
+
 simplexkernel(n::Integer, w::Real=1.0) = w^2/(n*(n+1))*(ones(n,n)+I)
 
 
@@ -48,20 +55,20 @@ end
 
 
 
-function _pma(X::AbstractMatrix, S::AbstractMatrix; dim=typemax(Int))
+function _pma(X::AbstractMatrix, S::AbstractMatrix; nsv=typemax(Int))
 	P,N = size(X)
 	Y = X*S
 
 	K = Symmetric(Y'Y)
-	dim = min(dim, N)
-	F = eigen(K, N-dim+1:N)
+	nsv = min(nsv, N)
+	F = eigen(K, N-nsv+1:N)
 	Σ = sqrt.(max.(0.,reverse(F.values)))
 	VV = F.vectors[:,end:-1:1] # Coordinates of simplex equivalents, not interesting in practice.
 
 	U = Y*VV ./ Σ'
 	V = X'U ./ Σ' # Coordinates of original sample points in low dimensional space.
 
-	U,Σ,V,VV
+	PMA(U,Σ,V,VV)
 end
 
 pma(X::AbstractMatrix, G::AbstractMatrix{Bool}; kwargs...) = _pma(X, simplexgraph2kernelmatrixroot(G); kwargs...)
