@@ -2,20 +2,16 @@ module PMAGUI
 
 using PrincipalMomentAnalysis
 using LinearAlgebra
-# using Statistics
 using DataFrames
 using CSV
 
 using Blink
 using JSExpr
-# using DataStructures
 
 using Colors
 using PlotlyJS
 # using Measures
 using IterTools
-
-# using DelimitedFiles
 
 include("Schedulers.jl")
 using .Schedulers
@@ -422,116 +418,6 @@ function main()
 end
 
 
-# struct SampleData
-# 	data::Matrix
-# 	sa::DataFrame
-# 	va::DataFrame
-# 	filepath::String
-# 	errorMsg::String
-# end
-# SampleData() = SampleData(zeros(0,0),DataFrame(),DataFrame(),"","")
-# SampleData(data::Matrix, sa::DataFrame, va::DataFrame,filepath::String) = SampleData(data,sa,va,filepath,"")
-# SampleData(errorMsg::String) = SampleData(zeros(0,0),DataFrame(),DataFrame(),"",errorMsg)
-
-# function opendataset(filepath::String)::SampleData
-# 	isempty(filepath) && return SampleData("Please select file.")
-# 	isfile(filepath) || return SampleData("File not found: \"$filepath\".")
-# 	try
-# 		data,sa,va = Qlucore.read(filepath)
-# 		SampleData(data,sa,va,filepath)
-# 	catch e
-# 		SampleData("Error loading file: \"$filepath\" ($e)")
-# 	end
-# end
-
-
-# struct Result
-# 	U::Matrix{Float64}
-# 	S::Vector{Float64}
-# 	V::Matrix{Float64}
-# 	G::AbstractMatrix # the graph (needed for plotting)
-# end
-# Result() = Result(zeros(0,0),zeros(0),zeros(0,0),zeros(0,0))
-
-# function rundimreduction(ds::SampleData;
-#                          dimReductionMethod::Symbol, sampleMethod::Symbol, sampleAnnotation::Symbol,
-#                          timeAnnotation::Symbol, kNearestNeighbors::Int, distNearestNeighbors::Float64)
-# 	isempty(ds.errorMsg) || return
-# 	@assert dimReductionMethod in (:PMA,:PCA)
-# 	@assert sampleMethod in (:SA,:Time,:NN,:NNSA)
-# 	# @assert plotDims in 2:3
-
-# 	X = zeros(size(ds.data))
-# 	if any(ismissing,ds.data)
-# 		# Replace missing values with mean over samples with nonmissing data
-# 		println("Reconstructing missing values (taking the mean over all nonmissing samples)")
-# 		for i=1:size(X,1)
-# 			m = ismissing.(ds.data[i,:])
-# 			X[i,.!m] .= ds.data[i,.!m]
-# 			X[i,m] .= mean(ds.data[i,.!m])
-# 		end
-# 	else
-# 		X .= ds.data # just copy
-# 	end
-
-# 	normalizemeanstd!(X)
-
-# 	G = nothing
-# 	if sampleMethod == :SA
-# 		G = buildgraph(ds.sa[!,sampleAnnotation])
-# 	elseif sampleMethod == :Time
-# 		eltype(ds.sa[!,timeAnnotation])<:Number || @warn "Expected time annotation to contain numbers, got $(eltype(ds.sa[!,timeAnnotation])). Fallback to default sorting."
-# 		G = buildgraph(ds.sa[!,sampleAnnotation], ds.sa[!,timeAnnotation])
-# 	elseif sampleMethod == :NN
-# 		G = neighborhoodgraph(X,kNearestNeighbors,distNearestNeighbors,50);
-# 	elseif sampleMethod == :NNSA
-# 		G = neighborhoodgraph(X,kNearestNeighbors,distNearestNeighbors,50; groupBy=ds.sa[!,sampleAnnotation]);
-# 	end
-
-# 	# dim = 3
-# 	dim = min(10, size(X)...)
-
-# 	if dimReductionMethod==:PMA
-# 		U,S,V = pma(X,G,dim=dim)
-# 	elseif dimReductionMethod==:PCA
-# 		U,S,V = pca(X,dim=dim)
-# 	end
-# 	Result(U,S,V,G)
-# end
-
-# function showplot(ds::SampleData, result::Result, plotDims::Int;
-#                   dimReductionMethod::Symbol, sampleAnnotation::Symbol,
-#                   kwargs...)
-# 	colorBy = sampleAnnotation
-# 	colorDict = colordict(ds.sa[!,colorBy])
-
-# 	println(collect(keys(colorDict)))
-# 	println(collect(values(colorDict)))
-
-# 	opacity = 0.05
-# 	title = string(splitdir(ds.filepath)[2], " ", string(dimReductionMethod))
-# 	drawTriangles = false#true
-# 	drawLines = true
-
-# 	if plotDims==3
-# 		markerSize = 5
-# 		lineWidth = 1
-
-# 		pl = plotsimplices(result.V,ds.sa,result.G,colorBy,colorDict, title=title,
-# 		                   drawTriangles=drawTriangles, drawLines=drawLines, drawPoints=true,
-# 		                   opacity=opacity, markerSize=markerSize, lineWidth=lineWidth,
-# 		                   width=1024, height=768)
-# 		display(pl)
-# 	elseif plotDims==2
-# 		markerSize = 0.9mm
-# 		lineWidth = 0.3mm
-
-# 		pl = plotsimplices_gadfly(result.V,ds.sa,result.G,colorBy,colorDict, title=title,
-# 		                          drawTriangles=drawTriangles, drawLines=drawLines, drawPoints=true,
-# 		                          opacity=opacity, markerSize=markerSize, lineWidth=lineWidth)
-# 		display(pl)
-# 	end
-# end
 
 
 # function exportloadings(ds::SampleData, result::Result, filepath::String, varAnnot::Symbol, columns::Symbol, dims::Int, columnSort::Symbol;
@@ -564,157 +450,6 @@ end
 # 	mat[1,:] .= string.(names(df))
 # 	mat[2:end,:] .= string.(df)
 # 	writedlm(filepath, mat, '\t')
-# end
-
-
-# function main()
-# 	# init
-# 	dataset = opendataset("")
-# 	dimReductionParams = nothing
-# 	result = nothing
-# 	messageQueue = Queue{Pair{String,Any}}()
-
-
-# 	# setup gui
-# 	w = Window(Dict(:width=>512,:height=>768))
-
-# 	# event listeners
-# 	handle(w, "gedataopen") do args
-# 		println("gedataopen: ", args)
-# 		fn = isempty(args) ? "" : args[1]
-# 		enqueue!(messageQueue, "gedataopen"=>fn)
-# 	end
-# 	handle(w, "samplemethod") do args
-# 		println("samplemethod: ", args)
-# 		enqueue!(messageQueue, "samplemethod"=>args)
-# 	end
-# 	handle(w, "showplot") do args
-# 		println("showplot: ", args)
-# 		enqueue!(messageQueue, "showplot"=>args)
-# 	end
-# 	handle(w, "exportloadings") do args
-# 		println("exportloadings: ", args)
-# 		enqueue!(messageQueue, "exportloadings"=>args)
-# 	end
-
-# 	doc = read(joinpath(@__DIR__,"content.html"),String)
-# 	body!(w,doc,async=false)
-# 	changesamplemethod!(w,:SA)
-
-
-# 	# Message handling loop
-# 	while isopen(w.content.sock) # is there a better way to check if the window is still open?
-# 		if !isempty(messageQueue)
-# 			msg = dequeue!(messageQueue)
-# 			if msg.first == "gedataopen"
-# 				filepath = msg.second
-# 				println("Loading ", filepath)
-# 				dataset = opendataset(filepath)
-# 				dimReductionParams = nothing
-# 				result = nothing
-# 				if isempty(dataset.errorMsg)
-# 					println(filepath, " loaded successfully")
-# 				else
-# 					println("Loading failed with error, ", dataset.errorMsg)
-# 				end
-# 				populategui!(w,dataset)
-# 			elseif msg.first == "samplemethod"
-# 				sampleMethod = Symbol(msg.second)
-# 				println("Changing method to ", sampleMethod)
-# 				changesamplemethod!(w,sampleMethod)
-# 			elseif msg.first == "showplot"
-# 				args = msg.second
-# 				dimReductionMethod = Symbol(args[1])
-
-# 				params = Dict()
-# 				try
-# 					params = Dict(:dimReductionMethod=>dimReductionMethod,
-# 					              :sampleMethod=>Symbol(args[2]),
-# 					              :sampleAnnotation=>Symbol(args[3]),
-# 					              :timeAnnotation=>Symbol(args[4]),
-# 					              :kNearestNeighbors=>parse(Int,args[5]),
-# 					              :distNearestNeighbors=>parse(Float64,args[6]))
-# 				catch e
-# 					println("Failed to parse parameters ", args, ": ", sprint(showerror, e))
-# 				end
-
-# 				if params != dimReductionParams
-# 					try
-# 						println("Running ", dimReductionMethod)
-# 						result = rundimreduction(dataset; params...)
-# 						println("Done")
-# 						dimReductionParams = params
-# 					catch e
-# 						println("Failed to run ", dimReductionMethod, ": ", sprint(showerror, e))
-# 						result = nothing
-# 						dimReductionParams = nothing
-# 					end
-# 				end
-
-# 				if result!=nothing
-# 					try
-# 						println("Showing plot")
-# 						plotDims = parse(Int,args[7])
-# 						showplot(dataset, result, plotDims; dimReductionParams...)
-# 					catch e
-# 						println("Error showing plot: ", sprint(showerror,e))
-# 					end
-# 				end
-# 			elseif msg.first == "exportloadings"
-# 				# TODO: avoid code duplication
-# 				args = msg.second
-# 				dimReductionMethod = Symbol(args[1])
-
-# 				params = Dict()
-# 				try
-# 					params = Dict(:dimReductionMethod=>dimReductionMethod,
-# 					              :sampleMethod=>Symbol(args[2]),
-# 					              :sampleAnnotation=>Symbol(args[3]),
-# 					              :timeAnnotation=>Symbol(args[4]),
-# 					              :kNearestNeighbors=>parse(Int,args[5]),
-# 					              :distNearestNeighbors=>parse(Float64,args[6]))
-# 				catch e
-# 					println("Failed to parse parameters ", args, ": ", sprint(showerror, e))
-# 				end
-
-# 				if params != dimReductionParams
-# 					try
-# 						println("Running ", dimReductionMethod)
-# 						result = rundimreduction(dataset; params...)
-# 						println("Done")
-# 						dimReductionParams = params
-# 					catch e
-# 						println("Failed to run ", dimReductionMethod, ": ", sprint(showerror, e))
-# 						result = nothing
-# 						dimReductionParams = nothing
-# 					end
-# 				end
-
-# 				if result!=nothing
-# 					try
-# 						println("Exporting loadings")
-# 						println(args)
-# 						filepath = args[7]
-# 						varAnnot = Symbol(args[8])
-# 						columns = Symbol(args[9])
-# 						dims = parse(Int,args[10])
-# 						columnSort = Symbol(args[11])
-# 						exportloadings(dataset, result, filepath, varAnnot, columns, dims, columnSort; dimReductionParams...)
-# 						println("Done")
-# 					catch e
-# 						println("Error exporting loadings: ", sprint(showerror,e))
-# 					end
-# 				end
-# 			else
-# 				@warn "Unknown message type: $(msg.first)"
-# 			end
-# 		end
-
-# 		# yield() # Allow GUI to run
-# 		sleep(0.05) # Allow GUI to run
-# 	end
-
-
 # end
 
 
