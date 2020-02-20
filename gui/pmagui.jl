@@ -4,6 +4,7 @@ using PrincipalMomentAnalysis
 using LinearAlgebra
 # using Statistics
 using DataFrames
+using CSV
 
 using Blink
 using JSExpr
@@ -52,15 +53,30 @@ struct ReducedSampleData
 end
 
 
+function loadcsv(filepath::String; delim, nbrSampleAnnots, transpose::Bool=false)
+	df = CSV.read(filepath; delim=delim, transpose=transpose)
+	sa = df[:, 1:nbrSampleAnnots]
+	va = DataFrame(VariableID=names(df)[nbrSampleAnnots+1:end])
+	data = convert(Matrix, df[!,nbrSampleAnnots+1:end])'
+	@assert eltype(data) <: Union{Number,Missing}
+	data,sa,va
+end
 
 function loadsample(st, input::Dict{String,Any})::SampleData
-	@assert length(input)==1
-	filepath = input["filepath"]
+	@assert length(input)==3
+	filepath = input["filepath"]::String
+	nbrSampleAnnots = parse(Int,input["nbrsampleannots"]::String)
+	rowsAsSamples   = parse(Bool,input["rowsassamples"])
 	filepath == :__INVALID__ && return Nothing
 	filepath::String
 	isempty(filepath) && return Nothing
 	@assert isfile(filepath) "Sample file not found: \"$filepath\""
-	originalData,sa,va = Qlucore.read(filepath)
+	ext = lowercase(splitext(filepath)[2])
+	if ext==".gedata"
+		originalData,sa,va = Qlucore.read(filepath)
+	elseif ext in (".csv",".tsv",".txt")
+		originalData,sa,va = loadcsv(filepath; delim=ext==".csv" ? ',' : '\t', nbrSampleAnnots=nbrSampleAnnots, transpose=!rowsAsSamples)
+	end
 
 	data = zeros(size(originalData))
 	if any(ismissing,originalData)
@@ -211,6 +227,8 @@ function JobGraph()
 
 	loadSampleID = createjob!(loadsample, scheduler, "loadsample")
 	add_dependency!(scheduler, getparamjobid(scheduler,paramIDs,"samplefilepath")=>loadSampleID, "filepath")
+	add_dependency!(scheduler, getparamjobid(scheduler,paramIDs,"loadnbrsampleannots")=>loadSampleID, "nbrsampleannots")
+	add_dependency!(scheduler, getparamjobid(scheduler,paramIDs,"loadrowsassamples")=>loadSampleID, "rowsassamples")
 
 	normalizeID = createjob!(normalizesample, scheduler, "normalizesample")
 	add_dependency!(scheduler, loadSampleID=>normalizeID, "sampledata")

@@ -26,17 +26,19 @@
     }
     function init() {
         updateSampleGraphMethod("SA");
-        setValue("normalizemethod",      getChecked("normalizeMethodGroup"));
-        setValue("dimreductionmethod",   getChecked("dimReductionMethodGroup"));
-        setValue("knearestneighbors",    document.getElementById("kNearestNeighbors").value);
-        setValue("distnearestneighbors", document.getElementById("distNearestNeighbors").value);
-        setValue("plotdims",             getChecked("plotDimsGroup"));
-        setValue("plotwidth",            document.getElementById("plotWidth").value);
-        setValue("plotheight",           document.getElementById("plotHeight").value);
-        setValue("markersize",           document.getElementById("markerSize").value);
-        setValue("showpoints",           document.getElementById("showPoints").checked.toString());
-        setValue("showlines",            document.getElementById("showLines").checked.toString());
-        setValue("showtriangles",        document.getElementById("showTriangles").checked.toString());
+        setValue("loadnbrsampleannots", document.getElementById("loadNbrSampleAnnots").value);
+        setValue("loadrowsassamples",        document.getElementById("loadRowsAsSamples").checked.toString());
+        setValue("normalizemethod",          getChecked("normalizeMethodGroup"));
+        setValue("dimreductionmethod",       getChecked("dimReductionMethodGroup"));
+        setValue("knearestneighbors",        document.getElementById("kNearestNeighbors").value);
+        setValue("distnearestneighbors",     document.getElementById("distNearestNeighbors").value);
+        setValue("plotdims",                 getChecked("plotDimsGroup"));
+        setValue("plotwidth",                document.getElementById("plotWidth").value);
+        setValue("plotheight",               document.getElementById("plotHeight").value);
+        setValue("markersize",               document.getElementById("markerSize").value);
+        setValue("showpoints",               document.getElementById("showPoints").checked.toString());
+        setValue("showlines",                document.getElementById("showLines").checked.toString());
+        setValue("showtriangles",            document.getElementById("showTriangles").checked.toString());
     }
     function setSampleStatus(status) {
         document.getElementById("info").innerHTML = status;
@@ -80,6 +82,8 @@
 <div>
     <div class="group">
         <p class="subtitle">Samples</p>
+        Number of sample annotations: <input type="number" id="loadNbrSampleAnnots" min="0" max="10000" value="1" onchange='setValue("loadnbrsampleannots",this.value)'><br>
+        Use rows as samples <input type="checkbox" id="loadRowsAsSamples" onclick='setValue("loadrowsassamples", this.checked.toString())' checked><br>
         <button onclick='var electron = require("electron"); var fp = electron.remote.dialog.showOpenDialog({properties: ["openFile"]}); if (!(fp===undefined)) { setValue("samplefilepath", fp[0]); sendMessage(["loadsample"]); }'>Load sample</button>
         <div class="group">
             <p id="info"></p>
