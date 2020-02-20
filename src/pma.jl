@@ -82,7 +82,7 @@ end
 """
 	pma(A, G; nsv=6)
 
-Computes the Principal Moment Analysis of the matrix `A` (variables \times samples) using the sample adjacency graph `G`.
+Computes the Principal Moment Analysis of the matrix `A` (variables × samples) using the sample adjacency graph `G`.
 Set `nsv` to control the number of singular values and vectors returned.
 Returns a `PMA` struct.
 
