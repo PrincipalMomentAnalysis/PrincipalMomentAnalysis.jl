@@ -1,3 +1,11 @@
+"""
+	PMA <: Factorization
+
+The output of `pma` representing the Principal Momement Analysis factorization of a matrix `A`.
+If `F::PMA` is the factorization object, `U`, `S` and `V` can be obtained via `F.U`, `F.S` and `F.V` such as A ≈ U * Diagonal(S) * V'.
+
+See also `pma`.
+"""
 struct PMA{T} <: Factorization{T}
 	U::Matrix{T}
 	S::Vector{T}
@@ -55,9 +63,9 @@ end
 
 
 
-function _pma(X::AbstractMatrix, S::AbstractMatrix; nsv=typemax(Int))
-	P,N = size(X)
-	Y = X*S
+function _pma(A::AbstractMatrix, S::AbstractMatrix; nsv::Integer=6)
+	P,N = size(A)
+	Y = A*S
 
 	K = Symmetric(Y'Y)
 	nsv = min(nsv, N)
@@ -66,27 +74,36 @@ function _pma(X::AbstractMatrix, S::AbstractMatrix; nsv=typemax(Int))
 	VV = F.vectors[:,end:-1:1] # Coordinates of simplex equivalents, not interesting in practice.
 
 	U = Y*VV ./ Σ'
-	V = X'U ./ Σ' # Coordinates of original sample points in low dimensional space.
+	V = A'U ./ Σ' # Coordinates of original sample points in low dimensional space.
 
 	PMA(U,Σ,V,VV)
 end
 
-pma(X::AbstractMatrix, G::AbstractMatrix{Bool}; kwargs...) = _pma(X, simplexgraph2kernelmatrixroot(G); kwargs...)
+"""
+	pma(A, G; nsv=6)
+
+Computes the Principal Moment Analysis of the matrix `A` (variables \times samples) using the sample adjacency graph `G`.
+Set `nsv` to control the number of singular values and vectors returned.
+Returns a `PMA` struct.
+
+See also `PMA`.
+"""
+pma(A::AbstractMatrix, G::AbstractMatrix{Bool}; kwargs...) = _pma(A, simplexgraph2kernelmatrixroot(G); kwargs...)
 
 
 
 
-function _pma2(X::AbstractMatrix, dims::Integer, variableKernel, sampleKernelRoot)
-	P,N = size(X)
+function _pma2(A::AbstractMatrix, dims::Integer, variableKernel, sampleKernelRoot)
+	P,N = size(A)
 
-	R2 = Symmetric(X'*(variableKernel*X))
+	R2 = Symmetric(A'*(variableKernel*A))
 	K = Symmetric(sampleKernelRoot'R2*sampleKernelRoot)
 	dims = min(dims, N)
 	F = eigen(K, N-dims+1:N)
 	Σ = sqrt.(max.(0.,reverse(F.values)))
 	W = F.vectors[:,end:-1:1] # Basis for sample simplices
 
-	U = X*(sampleKernelRoot*W) ./ Σ' # Coordinates of original variables in low dimensional space.
+	U = A*(sampleKernelRoot*W) ./ Σ' # Coordinates of original variables in low dimensional space.
 
 	# R = cholesky(R2).U # doesn't work well since the matrix is only positively semidefinite and round errors will cause failure
 	FR = eigen(R2)
@@ -99,7 +116,7 @@ function _pma2(X::AbstractMatrix, dims::Integer, variableKernel, sampleKernelRoo
 end
 
 
-function pma2(X; dims=typemax(Int),
+function pma2(A; dims=typemax(Int),
 	             variableGraph=nothing, variableKernel=nothing,
 	             sampleGraph=nothing, sampleKernelRoot=nothing)
 	@assert any(!isequal(nothing),(variableGraph,variableKernel,sampleGraph,sampleKernelRoot)) "Specify at least one of the keyword arguments variableGraph and sampleGraph"
@@ -113,13 +130,13 @@ function pma2(X; dims=typemax(Int),
 	sampleGraph      != nothing && (sampleKernelRoot = simplexgraph2kernelmatrixroot(sampleGraph))
 	sampleKernelRoot == nothing && (sampleKernelRoot = I)
 
-	_pma2(X, dims, variableKernel, sampleKernelRoot)
+	_pma2(A, dims, variableKernel, sampleKernelRoot)
 end
 
 
-# function _pma2(X::AbstractMatrix, SVariables::AbstractMatrix, SSamples::AbstractMatrix; dim=typemax(Int))
-# 	P,N = size(X)
-# 	Y = SVariables*X*SSamples
+# function _pma2(A::AbstractMatrix, SVariables::AbstractMatrix, SSamples::AbstractMatrix; dim=typemax(Int))
+# 	P,N = size(A)
+# 	Y = SVariables*A*SSamples
 
 # 	K = Symmetric(Y'Y)
 # 	dim = min(dim, N)
@@ -129,16 +146,16 @@ end
 # 	UU = Y*VV ./ Σ'            # Coordinates of variable side simplex equivalents
 
 
-# 	U = X*SSamples*VV   ./ Σ' # Coordinates of original variables     in low dimensional space.
-# 	# V = X'SVariables'UU ./ Σ' # Coordinates of original sample points in low dimensional space.
-# 	V = X'*(SVariables'UU) ./ Σ' # Coordinates of original sample points in low dimensional space.
+# 	U = A*SSamples*VV   ./ Σ' # Coordinates of original variables     in low dimensional space.
+# 	# V = A'SVariables'UU ./ Σ' # Coordinates of original sample points in low dimensional space.
+# 	V = A'*(SVariables'UU) ./ Σ' # Coordinates of original sample points in low dimensional space.
 
 # 	# NxP PxP Pxd
 
 # 	# U = Y*VV ./ Σ'
-# 	# V = X'U ./ Σ' # Coordinates of original sample points in low dimensional space.
+# 	# V = A'U ./ Σ' # Coordinates of original sample points in low dimensional space.
 
 # 	U,Σ,V,UU,VV
 # end
 
-# pma2(X::AbstractMatrix, GVariables::AbstractMatrix, GSamples::AbstractMatrix; kwargs...) = _pma2(X, sparsegraph2simplices(GVariables), graph2simplices(GSamples); kwargs...)
+# pma2(A::AbstractMatrix, GVariables::AbstractMatrix, GSamples::AbstractMatrix; kwargs...) = _pma2(A, sparsegraph2simplices(GVariables), graph2simplices(GSamples); kwargs...)
