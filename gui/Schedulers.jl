@@ -402,7 +402,7 @@ function runjob!(s::Scheduler, jobID::JobID, jobName::String, changedAt::Threads
 			@info "Finished running$detachedStr $jobName[$(dur)s] ($jobID@$runAt) in thread $(Threads.threadid())."
 			isCanceled || @assert result!=nothing "Job $jobName returned nothing"
 		catch err
-			@warn "Job failed"
+			@warn "Job $jobName ($jobID@$runAt) failed"
 			showerror(stdout, err, catch_backtrace())
 			result = err
 		end
