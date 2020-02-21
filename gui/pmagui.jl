@@ -50,7 +50,7 @@ end
 
 
 function loadcsv(filepath::String; delim, nbrSampleAnnots, transpose::Bool=false)
-	df = CSV.read(filepath; delim=delim, transpose=transpose)
+	df = CSV.read(filepath; delim=delim, transpose=transpose, use_mmap=false, copycols=true, threaded=false) # copycols=true, threaded=false and perhaps use_mmap=false are needed to avoid crashes
 	sa = df[:, 1:nbrSampleAnnots]
 	va = DataFrame(VariableID=names(df)[nbrSampleAnnots+1:end])
 	data = convert(Matrix, df[!,nbrSampleAnnots+1:end])'
