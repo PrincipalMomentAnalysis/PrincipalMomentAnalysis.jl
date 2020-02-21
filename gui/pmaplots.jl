@@ -52,14 +52,14 @@ function plotsimplices(V, sa, G, colorBy, colorDict;
 	end
 
 	if drawTriangles
-		# plot triangles base on graph - TODO: improve code!
+		# plot triangles based on graph - TODO: improve code!
 		triangleInds = Int[]
 		for c=1:size(G,1)
 			ind = findall(G[:,c])
 			isempty(ind) && continue
 
 			length(ind)<3 && continue # no triangles
-			# length(ind)>3 && error("Tetrahedrons not yet supported") # tetrahedrons are above, TODO implement
+			# length(ind)>3 && error("Tetrahedrons not yet supported") # tetrahedrons and above, TODO implement
 
 			# slow and ugly solution
 			for tri in subsets(ind,3)
@@ -68,15 +68,10 @@ function plotsimplices(V, sa, G, colorBy, colorDict;
 		end
 		triangleInds = reshape(triangleInds,3,:)
 		triangleInds = unique(triangleInds,dims=2) # remove duplicates
+		triangleInds .-= 1 # PlotlyJS wants zero-based indices
 
-		for i=1:size(triangleInds,2)
-			ind = triangleInds[:,i]
-			cb = sa[ind[1],colorBy] # use color from the first one, should be same
-			col = colorDict[cb]
-
-			triangle = mesh3d(;x=V[ind,1],y=V[ind,2],z=V[ind,3], color=col, opacity=opacity, showlegend=false)
-			push!(traces, triangle)
-		end
+		vertexColor = getindex.((colorDict,), sa[!,colorBy])
+		push!(traces, mesh3d(; x=V[:,1],y=V[:,2],z=V[:,3],i=triangleInds[1,:],j=triangleInds[2,:],k=triangleInds[3,:], vertexcolor=vertexColor, opacity=opacity, showlegend=false))
 	end
 
 
