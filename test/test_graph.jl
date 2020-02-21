@@ -1,6 +1,6 @@
 @testset "Graph" begin
 
-@testset "Case1" begin
+@testset "ThreeGroups" begin
     annot = ["A","A","B","C"]
     G = buildgraph(annot)
     @test G==[true true 0 0; true true 0 0; 0 0 true 0; 0 0 0 true]
@@ -31,5 +31,18 @@ end
     S = simplexgraph2kernelmatrix(G)
     @test S == Diagonal(ones(4))
 end
+
+
+
+@testset "OneTimeSeries" begin
+	N = 6
+    annot = repeat(["A"], N)
+    t = 1:N
+    G = buildgraph(annot, t)
+    @test G == SymTridiagonal(trues(N),trues(N-1))
+    S = simplexgraph2kernelmatrix(G)
+    @test S ≈ [1/2 1/4 1/12 0 0 0; 1/4 2/3 1/6 1/12 0 0; 1/12 1/6 1/2 1/6 1/12 0; 0 1/12 1/6 1/2 1/6 1/12; 0 0 1/12 1/6 2/3 1/4; 0 0 0 1/12 1/4 1/2]
+end
+
 
 end
