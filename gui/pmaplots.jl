@@ -43,8 +43,7 @@ function plotsimplices(V, sa, G, colorBy, colorDict;
 		for ci in findall(G)
 			r,c = Tuple(ci)
 			r>c || continue # just use lower triangular part
-			cb = sa[r,colorBy] # use color from the first one, should be same
-			col = colorDict[cb]
+			col = weighted_color_mean(0.5, colorDict[sa[r,colorBy]], colorDict[sa[c,colorBy]]) # mix the colors... is it possible to do a gradient?
 			ind = [r,c]
 			line = scatter3d(;x=V[ind,1],y=V[ind,2],z=V[ind,3], mode="lines", line=attr(color=col, width=lineWidth), showlegend=false)
 			push!(traces, line)
