@@ -1,4 +1,14 @@
-function buildgraph(groupBy::AbstractVector, time=ones(length(groupBy)))
+function buildgraph(groupBy::AbstractVector)
+	N = length(groupBy)
+	G = falses(N,N) # make sparse?
+	for g in unique(groupBy)
+		ind = findall( groupBy.==g )
+		G[ind,ind] .= true
+	end
+	G
+end
+
+function buildgraph(groupBy::AbstractVector, time::AbstractVector)
 	N = length(groupBy)
 
 	G = falses(N,N) # make sparse?
