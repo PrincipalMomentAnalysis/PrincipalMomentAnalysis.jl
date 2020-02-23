@@ -13,51 +13,18 @@ struct PMA{T} <: Factorization{T}
 	VV::Matrix{T}
 end
 
-simplexkernel(n::Integer, w::Real=1.0) = w^2/(n*(n+1))*(ones(n,n)+I)
-
-
-
 function simplexgraph2kernelmatrix(G::AbstractMatrix{Bool})
-	N = size(G,1)
-	# convert graph to simplex matrix
-	K = zeros(N,N) # matrix describing all simplexes
-	for j=1:size(G,2)
-		ind = findall(G[:,j])
-		K[ind,ind] .+= simplexkernel(length(ind))
-	end
-	K
+	s = vec(sum(G,dims=1))
+	K = G * Diagonal(1.0./(s.*(s.+1))) * G'
+	K .+= Diagonal(diag(K))
 end
-
-
-# sparse input and output
-function simplexgraph2kernelmatrix(G::AbstractSparseMatrix{Bool})
-	N = size(G,1)
-	# convert graph to simplex matrix
-
-	I,J = Int[],Int[]
-	V = Float64[]
-	for j=1:size(G,2)
-		ind = findall(G[:,j])
-
-		# TODO: Could be built directly without constructing temporary simplexkernel matrix
-		S = simplexkernel(length(ind))
-		for c in 1:length(ind)
-			append!(I, ind)
-			append!(J, Iterators.repeated(ind[c],length(ind)))
-			append!(V, S[:,c])
-		end
-	end
-	sparse(I,J,V) # sums over repeated indices
-end
-
-
 
 function simplexgraph2kernelmatrixroot(G::AbstractMatrix{Bool})
 	K = simplexgraph2kernelmatrix(G)
 	# Factor K into AᵀA where A is symmetric too.
 	# F = eigen(Symmetric(K))
 	F = eigen(Symmetric(convert(Matrix,K))) # convert to matrix handles the case when K is sparse and is a no-op otherwise
-	F.vectors*Diagonal(sqrt.(F.values))*F.vectors'
+	F.vectors*Diagonal(sqrt.(max.(0.0,F.values)))*F.vectors'
 end
 
 
