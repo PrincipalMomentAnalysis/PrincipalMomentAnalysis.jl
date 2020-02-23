@@ -22,7 +22,6 @@ end
 function simplexgraph2kernelmatrixroot(G::AbstractMatrix{Bool})
 	K = simplexgraph2kernelmatrix(G)
 	# Factor K into AᵀA where A is symmetric too.
-	# F = eigen(Symmetric(K))
 	F = eigen(Symmetric(convert(Matrix,K))) # convert to matrix handles the case when K is sparse and is a no-op otherwise
 	F.vectors*Diagonal(sqrt.(max.(0.0,F.values)))*F.vectors'
 end
