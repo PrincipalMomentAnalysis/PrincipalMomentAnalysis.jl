@@ -32,9 +32,11 @@ function buildgraph(groupBy::AbstractVector, time::AbstractVector)
 end
 
 
-function neighborhoodgraph(D2::Symmetric, k::Integer, r::Float64; symmetric=false, groupBy=ones(size(D2,1)))
+function neighborhoodgraph(D2::Symmetric, k::Integer, r::Float64; symmetric=false, normalizedist=true, groupBy=ones(size(D2,1)))
+	@assert all(>=(0.0), D2)
 	N = size(D2,1)
-	r2 = r*r
+	r2 = r*r * (normalizedist ? maximum(D2) : 1.0)
+
 
 	uniqueGroups = unique(groupBy)
 	groupInds = Dict( g=>findall(groupBy.==g) for g in uniqueGroups )
@@ -68,9 +70,10 @@ end
 
 
 
-function sparseneighborhoodgraph(D2::Symmetric, k::Integer, r::Float64; symmetric=false)
+function sparseneighborhoodgraph(D2::Symmetric, k::Integer, r::Float64; symmetric=false, normalizedist=true)
+	@assert all(>=(0.0), D2)
 	N = size(D2,1)
-	r2 = r*r
+	r2 = r*r * (normalizedist ? maximum(D2) : 1.0)
 
 	I,J = Int[],Int[]
 	for j=1:N
