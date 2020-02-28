@@ -1,16 +1,21 @@
 """
 	PMA <: Factorization
 
-The output of `pma` representing the Principal Momement Analysis factorization of a matrix `A`.
-If `F::PMA` is the factorization object, `U`, `S` and `V` can be obtained via `F.U`, `F.S` and `F.V` such as A ≈ U * Diagonal(S) * V'.
+The output of `pma` representing the Principal Moment Analysis factorization of a matrix `A`.
+If `F::PMA` is the factorization object, `U`, `S`, `V` and `Vt` can be obtained via `F.U`, `F.S`, `F.V` and `F.Vt` such as A ≈ U * Diagonal(S) * Vt'.
 
 See also `pma`.
 """
 struct PMA{T} <: Factorization{T}
 	U::Matrix{T}
 	S::Vector{T}
-	V::Matrix{T}
+	Vt::Matrix{T}
 	VV::Matrix{T}
+end
+
+function Base.getproperty(F::PMA,name::Symbol)
+	name==:V && return F.Vt'
+	getfield(F,name)
 end
 
 function simplexgraph2kernelmatrix(G::AbstractMatrix{Bool})
@@ -40,9 +45,9 @@ function _pma(A::AbstractMatrix, S::AbstractMatrix; nsv::Integer=6)
 	VV = F.vectors[:,end:-1:1] # Coordinates of simplex equivalents, not interesting in practice.
 
 	U = Y*VV ./ Σ'
-	V = A'U ./ Σ' # Coordinates of original sample points in low dimensional space.
+	Vt = U'A ./ Σ # Coordinates of original sample points in low dimensional space.
 
-	PMA(U,Σ,V,VV)
+	PMA(U,Σ,Vt,VV)
 end
 
 """

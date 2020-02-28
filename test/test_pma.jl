@@ -4,10 +4,12 @@ function factorizationcmp(F1,F2)
 	@test size(F1.U)==size(F2.U)
 	@test size(F1.S)==size(F2.S)
 	@test size(F1.V)==size(F2.V)
+	@test size(F1.Vt)==size(F2.Vt)
 	@test F1.S ≈ F2.S
 	sgn = sign.(diag(F1.U'F2.U))
 	@test F1.U.*sgn' ≈ F2.U
 	@test F1.V.*sgn' ≈ F2.V
+	@test F1.Vt.*sgn ≈ F2.Vt
 	nothing
 end
 
