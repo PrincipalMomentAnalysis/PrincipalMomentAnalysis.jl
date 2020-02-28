@@ -11,9 +11,6 @@ include("util.jl")
 export
 	PMA,
 	pma,
-	_pma, # WIP
-	pma2, # WIP
-	_pma2, # WIP
 	buildgraph,
 	neighborhoodgraph,
 	sparseneighborhoodgraph,
