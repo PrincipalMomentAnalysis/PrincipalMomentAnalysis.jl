@@ -12,3 +12,7 @@ makedocs(
     	"Reference" => "reference.md",
     ]
 )
+
+deploydocs(
+    repo = "github.com/PrincipalMomentAnalysis/PrincipalMomentAnalysis.jl.git",
+)
