@@ -1,29 +1,32 @@
 """
-	normalizemean!(X)
+	normalizemean!(A)
 
-In place removal of the variable mean from the P×N matrix `X` where P is the number of variables and N is the number of samples.
+In place removal of the variable mean from the P×N matrix `A` where P is the number of variables and N is the number of samples.
 """
-normalizemean!(X::AbstractMatrix) = X .-= mean(X,dims=2)
-
-"""
-	normalizemean(X)
-
-Remove the variable mean from the P×N matrix `X` where P is the number of variables and N is the number of samples.
-"""
-normalizemean(X::AbstractMatrix) = normalizemean!(copy(X))
+normalizemean!(A::AbstractMatrix) = A .-= mean(A,dims=2)
 
 """
-	normalizemeanstd!(X)
+	normalizemean(A)
 
-In place normalization of variables to be mean zero and standard deviation one of the P×N matrix `X` where P is the number of variables and N is the number of samples.
+Remove the variable mean from the P×N matrix `A` where P is the number of variables and N is the number of samples.
 """
-function normalizemeanstd!(X::AbstractMatrix)
-	normalizemean!(X::AbstractMatrix)
-	X ./= max.(1e-12, std(X,dims=2)) # max to avoid div by zero
+normalizemean(A::AbstractMatrix) = A .- mean(A,dims=2)
+
+"""
+	normalizemeanstd!(A)
+
+In place normalization of variables to be mean zero and standard deviation one of the P×N matrix `A` where P is the number of variables and N is the number of samples.
+"""
+function normalizemeanstd!(A::AbstractMatrix)
+	normalizemean!(A::AbstractMatrix)
+	A ./= max.(1e-12, std(A,dims=2)) # max to avoid div by zero
 end
 """
-	normalizemeanstd!(X)
+	normalizemeanstd!(A)
 
-Normalize variables to be mean zero and standard deviation one in the P×N matrix `X` where P is the number of variables and N is the number of samples.
+Normalize variables to be mean zero and standard deviation one in the P×N matrix `A` where P is the number of variables and N is the number of samples.
 """
-normalizemeanstd(X::AbstractMatrix) = normalizemeanstd!(copy(X))
+function normalizemeanstd(A::AbstractMatrix)
+	A = normalizemean(A)
+	A ./= max.(1e-12, std(A,dims=2)) # max to avoid div by zero
+end

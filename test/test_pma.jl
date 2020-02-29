@@ -56,7 +56,6 @@ end
 	factorizationcmp(extractdims(FAns,1:4),FPMA4)
 end
 
-
 @testset "DisjointCliques" begin
 	G = Bool[1 0 0 0 0 0; 0 1 1 0 0 0; 0 1 1 0 0 0; 0 0 0 1 1 1; 0 0 0 1 1 1; 0 0 0 1 1 1]
 	# S = [1 0 0 0 0 0; 0 2/3 1/3 0 0 0; 0 1/3 2/3 0 0 0; 0 0 0 1/2 1/4 1/4; 0 0 0 1/4 1/2 1/4; 0 0 0 1/4 1/4 1/2] # corresponding S matrix
@@ -120,7 +119,5 @@ end
 	FPMA4 = pma(A,G; nsv=4)
 	factorizationcmp(extractdims(FAns,1:4),FPMA4)
 end
-
-
 
 end
