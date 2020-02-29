@@ -73,7 +73,7 @@ end
 	factorizationcmp(extractdims(FAns,1:4),FPMA4)
 end
 
-@testset "SymmetricGraph" begin
+@testset "SymmetricSimplexGraph" begin
 	G = Bool[1 0 0 0 1 0; 0 1 1 0 1 1; 0 1 1 1 1 0; 0 0 1 1 1 0; 1 1 1 1 1 1; 0 1 0 0 1 1]
 
 	S = [8/21 1/42 1/42 1/42 4/21 1/42; 1/42 29/70 13/105 31/420 29/140 11/70; 1/42 13/105 29/70 11/70 29/140 31/420; 1/42 31/420 11/70 11/35 11/70 1/42; 4/21 29/140 29/140 11/70 32/35 11/70; 1/42 11/70 31/420 1/42 11/70 11/35]
@@ -89,7 +89,7 @@ end
 	factorizationcmp(extractdims(FAns,1:4),FPMA4)
 end
 
-@testset "AsymmetricGraph" begin
+@testset "AsymmetricSimplexGraph" begin
 	G = Bool[1 0 0 0 0 0; 0 1 1 1 1 0; 0 1 1 0 1 1; 0 1 1 1 0 1; 0 0 0 0 1 1; 1 0 0 0 0 1]
 
 	S = [1/3 0 0 0 0 1/6; 0 5/6 1/4 1/3 1/12 0; 0 1/4 3/5 13/60 2/15 1/20; 0 1/3 13/60 23/30 1/20 1/20; 0 1/12 2/15 1/20 4/15 1/20; 1/6 0 1/20 1/20 1/20 13/30]
@@ -105,7 +105,7 @@ end
 	factorizationcmp(extractdims(FAns,1:4),FPMA4)
 end
 
-@testset "AsymmetricGraph2" begin
+@testset "AsymmetricSimplexGraph2" begin
 	G = Bool[1 0 0 0 0 0; 0 0 1 1 1 0; 0 1 1 0 1 1; 0 1 1 0 0 1; 0 0 0 0 1 1; 1 0 0 0 0 0]
 
 	S = [1/3 0 0 0 0 1/6; 0 4/3 1/6 1/12 1/12 0; 0 1/6 5/6 1/3 1/6 0; 0 1/12 1/3 2/3 1/12 0; 0 1/12 1/6 1/12 1/3 0; 1/6 0 0 0 0 1/3]

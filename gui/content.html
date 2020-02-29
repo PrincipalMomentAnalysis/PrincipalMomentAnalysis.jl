@@ -8,8 +8,8 @@
         }
         return "";
     }
-    function updateSampleGraphMethod(method) {
-        setValue("samplegraphmethod", method)
+    function updateSampleSimplexMethod(method) {
+        setValue("samplesimplexmethod", method)
 
         document.getElementById("sampleAnnot").disabled = method=="NN"
         document.getElementById("timeAnnot").disabled = method!="Time"
@@ -25,7 +25,7 @@
         sendMessage(["setvalue", name, value])
     }
     function init() {
-        updateSampleGraphMethod("SA");
+        updateSampleSimplexMethod("SA");
         setValue("loadnbrsampleannots", document.getElementById("loadNbrSampleAnnots").value);
         setValue("loadrowsassamples",        document.getElementById("loadRowsAsSamples").checked.toString());
         setValue("normalizemethod",          getChecked("normalizeMethodGroup"));
@@ -107,11 +107,11 @@
             </p>
         </div>
         <div id="sampleMethodGroup">
-            <p>Sample Graph Method:</p>
-            <input type="radio" name="samplemethod" value="SA"   onclick='updateSampleGraphMethod("SA")'   checked>Sample Annotation<br>
-            <input type="radio" name="samplemethod" value="Time" onclick='updateSampleGraphMethod("Time")'        >Time Series<br>
-            <input type="radio" name="samplemethod" value="NN"   onclick='updateSampleGraphMethod("NN")'          >Nearest Neighbor<br>
-            <input type="radio" name="samplemethod" value="NNSA" onclick='updateSampleGraphMethod("NNSA")'        >Nearest Neighbor within groups<br>
+            <p>Sample Simplex Method:</p>
+            <input type="radio" name="samplemethod" value="SA"   onclick='updateSampleSimplexMethod("SA")'   checked>Sample Annotation<br>
+            <input type="radio" name="samplemethod" value="Time" onclick='updateSampleSimplexMethod("Time")'        >Time Series<br>
+            <input type="radio" name="samplemethod" value="NN"   onclick='updateSampleSimplexMethod("NN")'          >Nearest Neighbor<br>
+            <input type="radio" name="samplemethod" value="NNSA" onclick='updateSampleSimplexMethod("NNSA")'        >Nearest Neighbor within groups<br>
         </div>
         <div>
             <p>Choose sample annotation:</p>

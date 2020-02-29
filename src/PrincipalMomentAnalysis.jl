@@ -4,18 +4,19 @@ using LinearAlgebra
 using SparseArrays
 using Statistics
 
-include("graph.jl")
+include("simplices.jl")
 include("pma.jl")
 include("util.jl")
 
 export
 	PMA,
 	pma,
-	buildgraph,
-	neighborhoodgraph,
-	sparseneighborhoodgraph,
-	simplexgraph2kernelmatrix,
-	simplexgraph2kernelmatrixroot,
+	groupsimplices,
+	timeseriessimplices,
+	neighborsimplices,
+	neighborsimplices2,
+	sparseneighborsimplices,
+	sparseneighborsimplices2,
 	normalizemean!,
 	normalizemean,
 	normalizemeanstd!,

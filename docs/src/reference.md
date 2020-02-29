@@ -7,4 +7,5 @@ normalizemean!
 normalizemean
 normalizemeanstd!
 normalizemeanstd
+groupsimplices
 ```

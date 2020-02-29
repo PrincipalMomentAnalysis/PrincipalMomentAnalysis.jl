@@ -29,7 +29,7 @@ struct JobGraph
 	paramIDs::Dict{String,JobID}
 	loadSampleID::JobID
 	normalizeID::JobID
-	setupGraphID::JobID
+	setupSimplicesID::JobID
 	dimreductionID::JobID
 	makeplotID::JobID
 end
@@ -110,7 +110,7 @@ function normalizesample(st, input::Dict{String,Any})
 end
 
 
-function setupgraph(st, input::Dict{String,Any})
+function setupsimplices(st, input::Dict{String,Any})
 	@assert length(input)==6
 	sampleData  = input["sampledata"]
 	method      = Symbol(input["method"])
@@ -122,14 +122,14 @@ function setupgraph(st, input::Dict{String,Any})
 
 	G = nothing
 	if method == :SA
-		G = buildgraph(sampleData.sa[!,sampleAnnot])
+		G = groupsimplices(sampleData.sa[!,sampleAnnot])
 	elseif method == :Time
 		eltype(sampleData.sa[!,timeAnnot])<:Number || @warn "Expected time annotation to contain numbers, got $(eltype(sampleData.sa[!,timeAnnot])). Fallback to default sorting."
-		G = buildgraph(sampleData.sa[!,sampleAnnot], sampleData.sa[!,timeAnnot])
+		G = timeseriessimplices(sampleData.sa[!,timeAnnot], sampleData.sa[!,sampleAnnot])
 	elseif method == :NN
-		G = neighborhoodgraph(sampleData.data, kNN, distNN, 50);
+		G = neighborsimplices(sampleData.data, kNN, distNN, 50);
 	elseif method == :NNSA
-		G = neighborhoodgraph(sampleData.data, kNN, distNN, 50; groupBy=sampleData.sa[!,sampleAnnot]);
+		G = neighborsimplices(sampleData.data, kNN, distNN, 50; groupBy=sampleData.sa[!,sampleAnnot]);
 	end
 	G
 end
@@ -137,9 +137,9 @@ end
 
 function dimreduction(st, input::Dict{String,Any})
 	@assert length(input)==3
-	sampleData  = input["sampledata"]
-	sampleGraph = input["samplegraph"]
-	method      = Symbol(input["method"])
+	sampleData      = input["sampledata"]
+	sampleSimplices = input["samplesimplices"]
+	method          = Symbol(input["method"])
 
 	X = sampleData.data::Matrix{Float64}
 
@@ -147,7 +147,7 @@ function dimreduction(st, input::Dict{String,Any})
 	dim = min(10, size(X)...)
 
 	if method==:PMA
-		F = pma(X, sampleGraph, nsv=dim)
+		F = pma(X, sampleSimplices, nsv=dim)
 	elseif method==:PCA
 		F = svdbyeigen(X,nsv=dim)
 	end
@@ -159,7 +159,7 @@ function makeplot(st, input::Dict{String,Any})
 	reduced            = input["reduced"]::ReducedSampleData
 	dimReductionMethod = Symbol(input["dimreductionmethod"])
 	sampleAnnot        = Symbol(input["sampleannot"])
-	sampleGraph        = input["samplegraph"]
+	sampleSimplices    = input["samplesimplices"]
 	plotDims           = parse(Int,input["plotdims"])
 	plotWidth          = parse(Int,input["plotwidth"])
 	plotHeight         = parse(Int,input["plotheight"])
@@ -186,7 +186,7 @@ function makeplot(st, input::Dict{String,Any})
 	plotArgs = nothing
 	if plotDims==3
 		lineWidth = 1
-		plotArgs = plotsimplices(reduced.F.V,reduced.sa,sampleGraph,colorBy,colorDict, title=title,
+		plotArgs = plotsimplices(reduced.F.V,reduced.sa,sampleSimplices,colorBy,colorDict, title=title,
 		                         drawPoints=showPoints, drawLines=showLines, drawTriangles=showTriangles,
 		                         opacity=opacity, markerSize=markerSize, lineWidth=lineWidth,
 		                         width=plotWidth, height=plotHeight)
@@ -230,25 +230,25 @@ function JobGraph()
 	add_dependency!(scheduler, loadSampleID=>normalizeID, "sampledata")
 	add_dependency!(scheduler, getparamjobid(scheduler,paramIDs,"normalizemethod")=>normalizeID, "method")
 
-	setupGraphID = createjob!(setupgraph, scheduler, "setupgraph")
-	add_dependency!(scheduler, normalizeID=>setupGraphID, "sampledata")
-	add_dependency!(scheduler, getparamjobid(scheduler,paramIDs,"samplegraphmethod")=>setupGraphID, "method")
-	add_dependency!(scheduler, getparamjobid(scheduler,paramIDs,"sampleannot")=>setupGraphID, "sampleannot")
-	add_dependency!(scheduler, getparamjobid(scheduler,paramIDs,"timeannot")=>setupGraphID, "timeannot")
-	add_dependency!(scheduler, getparamjobid(scheduler,paramIDs,"knearestneighbors")=>setupGraphID, "knearestneighbors")
-	add_dependency!(scheduler, getparamjobid(scheduler,paramIDs,"distnearestneighbors")=>setupGraphID, "distnearestneighbors")
+	setupSimplicesID = createjob!(setupsimplices, scheduler, "setupsimplices")
+	add_dependency!(scheduler, normalizeID=>setupSimplicesID, "sampledata")
+	add_dependency!(scheduler, getparamjobid(scheduler,paramIDs,"samplesimplexmethod")=>setupSimplicesID, "method")
+	add_dependency!(scheduler, getparamjobid(scheduler,paramIDs,"sampleannot")=>setupSimplicesID, "sampleannot")
+	add_dependency!(scheduler, getparamjobid(scheduler,paramIDs,"timeannot")=>setupSimplicesID, "timeannot")
+	add_dependency!(scheduler, getparamjobid(scheduler,paramIDs,"knearestneighbors")=>setupSimplicesID, "knearestneighbors")
+	add_dependency!(scheduler, getparamjobid(scheduler,paramIDs,"distnearestneighbors")=>setupSimplicesID, "distnearestneighbors")
 
 	dimreductionID = createjob!(dimreduction, scheduler, "dimreduction")
 	# add_dependency!(scheduler, loadSampleID=>dimreductionID, "sampledata")
 	add_dependency!(scheduler, normalizeID=>dimreductionID, "sampledata")
-	add_dependency!(scheduler, setupGraphID=>dimreductionID, "samplegraph")
+	add_dependency!(scheduler, setupSimplicesID=>dimreductionID, "samplesimplices")
 	add_dependency!(scheduler, getparamjobid(scheduler,paramIDs,"dimreductionmethod")=>dimreductionID, "method")
 
 	makeplotID = createjob!(makeplot, scheduler, "makeplot")
 	add_dependency!(scheduler, dimreductionID=>makeplotID, "reduced")
 	add_dependency!(scheduler, getparamjobid(scheduler,paramIDs,"dimreductionmethod")=>makeplotID, "dimreductionmethod")
 	add_dependency!(scheduler, getparamjobid(scheduler,paramIDs,"sampleannot")=>makeplotID, "sampleannot")
-	add_dependency!(scheduler, setupGraphID=>makeplotID, "samplegraph")
+	add_dependency!(scheduler, setupSimplicesID=>makeplotID, "samplesimplices")
 	add_dependency!(scheduler, getparamjobid(scheduler,paramIDs,"plotdims")=>makeplotID, "plotdims")
 	add_dependency!(scheduler, getparamjobid(scheduler,paramIDs,"plotwidth")=>makeplotID, "plotwidth")
 	add_dependency!(scheduler, getparamjobid(scheduler,paramIDs,"plotheight")=>makeplotID, "plotheight")
@@ -264,7 +264,7 @@ function JobGraph()
 	         paramIDs,
 	         loadSampleID,
 	         normalizeID,
-	         setupGraphID,
+	         setupSimplicesID,
 	         dimreductionID,
 	         makeplotID)
 end

@@ -1,4 +1,20 @@
-function buildgraph(groupBy::AbstractVector)
+"""
+	groupsimplices(groupBy::AbstractVector)
+
+Create simplex graph connection elements with identical values in the groupBy vector.
+
+# Examples
+```
+julia> G = groupsimplices(["A","A","B","C","B"])
+5×5 BitArray{2}:
+ 1  1  0  0  0
+ 1  1  0  0  0
+ 0  0  1  0  1
+ 0  0  0  1  0
+ 0  0  1  0  1
+```
+"""
+function groupsimplices(groupBy::AbstractVector)
 	N = length(groupBy)
 	G = falses(N,N) # make sparse?
 	for g in unique(groupBy)
@@ -8,7 +24,7 @@ function buildgraph(groupBy::AbstractVector)
 	G
 end
 
-function buildgraph(groupBy::AbstractVector, time::AbstractVector)
+function timeseriessimplices(time::AbstractVector, groupBy::AbstractVector)
 	N = length(groupBy)
 
 	G = falses(N,N) # make sparse?
@@ -32,7 +48,7 @@ function buildgraph(groupBy::AbstractVector, time::AbstractVector)
 end
 
 
-function neighborhoodgraph(D2::Symmetric, k::Integer, r::Float64; symmetric=false, normalizedist=true, groupBy=ones(size(D2,1)))
+function neighborsimplices2(D2::Symmetric, k::Integer, r::Float64; symmetric=false, normalizedist=true, groupBy=ones(size(D2,1)))
 	@assert all(>=(0.0), D2)
 	N = size(D2,1)
 	r2 = r*r * (normalizedist ? maximum(D2) : 1.0)
@@ -53,7 +69,7 @@ function neighborhoodgraph(D2::Symmetric, k::Integer, r::Float64; symmetric=fals
 	symmetric && (G .|= G')
 	G
 end
-function neighborhoodgraph(X::AbstractMatrix, k::Integer, r::Float64, dim::Integer=typemax(Int); kwargs...)
+function neighborsimplices(X::AbstractMatrix, k::Integer, r::Float64, dim::Integer=typemax(Int); kwargs...)
 	P,N = size(X)
 	K = X'X
 
@@ -64,13 +80,13 @@ function neighborhoodgraph(X::AbstractMatrix, k::Integer, r::Float64, dim::Integ
 
 	d = diag(K)
 	D2 = Symmetric(max.(0., d .+ d' .- 2K)) # matrix of squared distances
-	neighborhoodgraph(D2,k,r;kwargs...)
+	neighborsimplices2(D2,k,r;kwargs...)
 end
 
 
 
 
-function sparseneighborhoodgraph(D2::Symmetric, k::Integer, r::Float64; symmetric=false, normalizedist=true)
+function sparseneighborsimplices2(D2::Symmetric, k::Integer, r::Float64; symmetric=false, normalizedist=true)
 	@assert all(>=(0.0), D2)
 	N = size(D2,1)
 	r2 = r*r * (normalizedist ? maximum(D2) : 1.0)
@@ -88,7 +104,7 @@ function sparseneighborhoodgraph(D2::Symmetric, k::Integer, r::Float64; symmetri
 	symmetric && (G .|= G')
 	G
 end
-function sparseneighborhoodgraph(X::AbstractMatrix, k::Integer, r::Float64, dim::Integer=typemax(Int); kwargs...)
+function sparseneighborsimplices(X::AbstractMatrix, k::Integer, r::Float64, dim::Integer=typemax(Int); kwargs...)
 	P,N = size(X)
 
 
@@ -106,5 +122,5 @@ function sparseneighborhoodgraph(X::AbstractMatrix, k::Integer, r::Float64, dim:
 
 	d = diag(K)
 	D2 = Symmetric(max.(0., d .+ d' .- 2K)) # matrix of squared distances
-	sparseneighborhoodgraph(D2,k,r;kwargs...)
+	sparseneighborsimplices2(D2,k,r;kwargs...)
 end
