@@ -94,7 +94,7 @@ Create simplex graph connecting nearest neighbors in given symmetric matrix wher
 * `normalizedist`: Normalize distances to the scale [0.0,1.0]. Affects the `r` parameter. Default: `true`.
 * `groupby`: Only connected samples within the specified groups. Default: Disabled.
 """
-function neighborsimplices2(D2::AbstractMatrix, k::Integer, r::Real; symmetric=false, normalizedist=true, groupby=falses(size(D2,1)))
+function neighborsimplices2(D2::AbstractMatrix; k::Integer=0, r::Real=0.0, symmetric=false, normalizedist=true, groupby=falses(size(D2,1)))
 	@assert issymmetric(D2)
 	@assert all(x->x>=0.0, D2)
 	N = size(D2,1)
@@ -157,13 +157,13 @@ function neighborsimplices(A::AbstractMatrix; k::Integer=0, r::Real=0.0, dim::In
 
 	d = diag(K)
 	D2 = Symmetric(max.(0., d .+ d' .- 2K)) # matrix of squared distances
-	neighborsimplices2(D2,k,r;kwargs...)
+	neighborsimplices2(D2,k=k,r=r;kwargs...)
 end
 
 
 
 
-function sparseneighborsimplices2(D2::Symmetric, k::Integer, r::Float64; symmetric=false, normalizedist=true)
+function sparseneighborsimplices2(D2::Symmetric; k::Integer=0, r::Real=0.0, symmetric=false, normalizedist=true)
 	@assert all(x->x>=0.0, D2)
 	N = size(D2,1)
 	r2 = r*r * (normalizedist ? maximum(D2) : 1.0)
@@ -181,7 +181,7 @@ function sparseneighborsimplices2(D2::Symmetric, k::Integer, r::Float64; symmetr
 	symmetric && (G .|= G')
 	G
 end
-function sparseneighborsimplices(A::AbstractMatrix, k::Integer, r::Float64, dim::Integer=typemax(Int); kwargs...)
+function sparseneighborsimplices(A::AbstractMatrix; k::Integer=0, r::Real=0.0, dim::Integer=typemax(Int), kwargs...)
 	P,N = size(A)
 
 
@@ -199,5 +199,5 @@ function sparseneighborsimplices(A::AbstractMatrix, k::Integer, r::Float64, dim:
 
 	d = diag(K)
 	D2 = Symmetric(max.(0., d .+ d' .- 2K)) # matrix of squared distances
-	sparseneighborsimplices2(D2,k,r;kwargs...)
+	sparseneighborsimplices2(D2,k=k,r=r;kwargs...)
 end
