@@ -8,4 +8,7 @@ normalizemean
 normalizemeanstd!
 normalizemeanstd
 groupsimplices
+timeseriessimplices
+neighborsimplices
+neighborsimplices2
 ```

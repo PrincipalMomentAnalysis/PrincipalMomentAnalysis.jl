@@ -125,11 +125,11 @@ function setupsimplices(st, input::Dict{String,Any})
 		G = groupsimplices(sampleData.sa[!,sampleAnnot])
 	elseif method == :Time
 		eltype(sampleData.sa[!,timeAnnot])<:Number || @warn "Expected time annotation to contain numbers, got $(eltype(sampleData.sa[!,timeAnnot])). Fallback to default sorting."
-		G = timeseriessimplices(sampleData.sa[!,timeAnnot], sampleData.sa[!,sampleAnnot])
+		G = timeseriessimplices(sampleData.sa[!,timeAnnot], groupby=sampleData.sa[!,sampleAnnot])
 	elseif method == :NN
-		G = neighborsimplices(sampleData.data, kNN, distNN, 50);
+		G = neighborsimplices(sampleData.data; k=kNN, r=distNN, dim=50)
 	elseif method == :NNSA
-		G = neighborsimplices(sampleData.data, kNN, distNN, 50; groupBy=sampleData.sa[!,sampleAnnot]);
+		G = neighborsimplices(sampleData.data; k=kNN, r=distNN, dim=50, groupBy=sampleData.sa[!,sampleAnnot])
 	end
 	G
 end
