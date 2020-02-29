@@ -96,7 +96,7 @@ Create simplex graph connecting nearest neighbors in given symmetric matrix wher
 """
 function neighborsimplices2(D2::AbstractMatrix, k::Integer, r::Real; symmetric=false, normalizedist=true, groupby=falses(size(D2,1)))
 	@assert issymmetric(D2)
-	@assert all(>=(0.0), D2)
+	@assert all(x->x>=0.0, D2)
 	N = size(D2,1)
 	r2 = r*r * (normalizedist ? maximum(D2) : 1.0)
 
@@ -164,7 +164,7 @@ end
 
 
 function sparseneighborsimplices2(D2::Symmetric, k::Integer, r::Float64; symmetric=false, normalizedist=true)
-	@assert all(>=(0.0), D2)
+	@assert all(x->x>=0.0, D2)
 	N = size(D2,1)
 	r2 = r*r * (normalizedist ? maximum(D2) : 1.0)
 

@@ -19,16 +19,16 @@ A = [-8 0 6 0 0 0; -1 9 6 -2 0 -1; -1 0 -2 0 0 0; 0 1 0 1 0 -2; -9 -3 0 0 0 -5; 
 
 @testset "PCA" begin
 	FAns = svd(A)
-	FPMA = pma(A,I(6); nsv=6)
+	FPMA = pma(A,Diagonal(trues(6)); nsv=6)
 	factorizationcmp(FAns,FPMA)
-	FPMA4 = pma(A,I(6); nsv=4)
+	FPMA4 = pma(A,Diagonal(trues(6)); nsv=4)
 	factorizationcmp(extractdims(FAns,1:4),FPMA4)
 end
 
 @testset "TotalSimplexMass" begin
 	A2 = hcat(repeat(A[:,1],1,5), repeat(A[:,2],1,2), A[:,3:end]) # five copies of first sample and two copies of second
 
-	G = Matrix(I(11))
+	G = Matrix(Diagonal(trues(11)))
 	G[1:5,1:5] .= true # Connect (identical) samples 1-5
 	G[6:7,6:7] .= true # Connect (identical) samples 6-7
 
@@ -44,7 +44,7 @@ end
 @testset "TotalSimplexMass2" begin
 	A2 = hcat(repeat(A[:,1],1,4), A[:,2:end]) # four copies of first sample
 
-	G = Matrix(I(9))
+	G = Matrix(Diagonal(trues(9)))
 	G[1:4,1:4] .= LowerTriangular(ones(4,4)) # Simplices of dimensions 1-4 connecting (some of) the 4 identical samples
 
 	FAns = svd(A2)
