@@ -129,7 +129,7 @@ function setupsimplices(st, input::Dict{String,Any})
 	elseif method == :NN
 		G = neighborsimplices(sampleData.data; k=kNN, r=distNN, dim=50)
 	elseif method == :NNSA
-		G = neighborsimplices(sampleData.data; k=kNN, r=distNN, dim=50, groupBy=sampleData.sa[!,sampleAnnot])
+		G = neighborsimplices(sampleData.data; k=kNN, r=distNN, dim=50, groupby=sampleData.sa[!,sampleAnnot])
 	end
 	G
 end
