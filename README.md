@@ -9,9 +9,12 @@
 
 This is a Julia implementation of (Simplex) Principal Moment Analysis.
 
+See also:
 * [Principal Moment Analysis home page](https://principalmomentanalysis.github.io/).
-* Package documentation can be found [here](https://principalmomentanalysis.github.io/PrincipalMomentAnalysis.jl/stable).
+* [Package documentation](https://principalmomentanalysis.github.io/PrincipalMomentAnalysis.jl/stable).
+* [The Principal Moment Analysis App](https://github.com/PrincipalMomentAnalysis/PrincipalMomentAnalysisApp.jl/).
 
+## Installation
 To install PrincipalMomentAnalysis.jl, start Julia and type:
 ```julia
 using Pkg
