@@ -8,6 +8,9 @@ If you want to cite this work, please use:
 * Corresponding author: Magnus Fontes (fontes.magnus@gene.com)
 * Julia implementation: Rasmus Henningsson (rasmus.henningsson@med.lu.se)
 
+The Principal Moment Analysis source code is available at [GitHub](https://github.com/PrincipalMomentAnalysis/PrincipalMomentAnalysis.jl).
+
+
 ## Principal Moment Analysis App
 If you prefer to run Principal Moment Analysis using a GUI, check out the [Principal Moment Analysis App](https://github.com/PrincipalMomentAnalysis/PrincipalMomentAnalysisApp.jl/).
 
