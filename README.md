@@ -21,4 +21,4 @@ using Pkg
 Pkg.add("PrincipalMomentAnalysis")
 ```
 
-More information to come soon!
+Please refer to the [documentation](https://principalmomentanalysis.github.io/PrincipalMomentAnalysis.jl/stable) for more information.
