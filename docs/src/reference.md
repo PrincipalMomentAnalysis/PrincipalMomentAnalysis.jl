@@ -7,6 +7,7 @@ normalizemean!
 normalizemean
 normalizemeanstd!
 normalizemeanstd
+SimplexGraph
 groupsimplices
 timeseriessimplices
 neighborsimplices
