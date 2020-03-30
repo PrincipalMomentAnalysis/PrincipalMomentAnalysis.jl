@@ -20,7 +20,7 @@ end
 
 function simplices2kernelmatrix(sg::SimplexGraph)
 	s = vec(sum(sg.G,dims=1))
-	K = sg.G * Diagonal(1.0./(s.*(s.+1))) * sg.G'
+	K = sg.G * Diagonal(sg.w./(s.*(s.+1))) * sg.G'
 	K .+= Diagonal(diag(K))
 end
 

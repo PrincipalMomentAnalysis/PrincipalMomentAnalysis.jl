@@ -20,30 +20,41 @@ struct SimplexGraph{T<:AbstractMatrix{Bool}, S<:Union{Number,AbstractVector{<:Nu
 	end
 end
 
+
 """
 	groupsimplices(groupby::AbstractVector)
 
-Create simplex graph connecting elements with identical values in the groupby vector.
+Create SimplexGraph connecting elements with identical values in the groupby vector.
 
 # Examples
 ```
-julia> G = groupsimplices(["A","A","B","C","B"])
-5×5 BitArray{2}:
- 1  1  0  0  0
- 1  1  0  0  0
- 0  0  1  0  1
- 0  0  0  1  0
- 0  0  1  0  1
+julia> sg = groupsimplices(["A","A","B","C","B"]);
+
+julia> sg.G
+5×3 BitArray{2}:
+ 1  0  0
+ 1  0  0
+ 0  1  0
+ 0  0  1
+ 0  1  0
+
+julia> sg.w
+3-element Array{Int64,1}:
+ 2
+ 2
+ 1
 ```
 """
 function groupsimplices(groupby::AbstractVector)
-	N = length(groupby)
-	G = falses(N,N) # make sparse?
-	for g in unique(groupby)
-		ind = findall( groupby.==g )
-		G[ind,ind] .= true
+	u = unique(groupby)
+	ind = indexin(groupby,unique(groupby))
+	G = falses(length(groupby), length(u)) # TODO: make sparse?
+	w = zeros(Int,length(u))
+	for (i,k) in enumerate(ind)
+		G[i,k] = true
+		w[k] += 1
 	end
-	SimplexGraph(G)
+	SimplexGraph(G,w)
 end
 
 

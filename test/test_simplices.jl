@@ -1,19 +1,37 @@
 @testset "Simplices" begin
 
+# checks that to SimplexGraphs are identical up to a permutation of the simplices.
+function simplexgraphcmp(sg1,sg2)
+	@test size(sg1.G)==size(sg2.G)
+	@test size(sg1.w)==size(sg2.w)
+	N = size(sg1.G,2)
+	if sg1.w isa AbstractVector
+		perm1 = sortperm(1:N, by=i->(sg1.w[i], sg1.G[:,i]))
+		perm2 = sortperm(1:N, by=i->(sg2.w[i], sg2.G[:,i]))
+		@test sg1.w[perm1] == sg2.w[perm2]
+	else
+		perm1 = sortperm(1:N, by=i->sg1.G[:,i])
+		perm2 = sortperm(1:N, by=i->sg2.G[:,i])
+	end
+	@test sg1.G[:,perm1] == sg2.G[:,perm2]
+	nothing
+end
+
+
 @testset "ThreeGroups" begin
-	GAnswer = Bool[1 1 0 0; 1 1 0 0; 0 0 1 0; 0 0 0 1]
+	sgAnswer = SimplexGraph(Bool[1 0 0; 1 0 0; 0 1 0; 0 0 1], [2,1,1])
 	SAnswer = [2/3 1/3 0 0; 1/3 2/3 0 0; 0 0 1 0; 0 0 0 1]
 
 	annot = ["A","A","B","C"]
 	sg = groupsimplices(annot)
-	@test sg.G==GAnswer
+	simplexgraphcmp(sg,sgAnswer)
 	S = simplices2kernelmatrix(sg)
 	@test S ≈ SAnswer
 
 	# try permuted version
 	perm = [2, 3, 4, 1]
 	sg = groupsimplices(annot[perm])
-	@test sg.G==GAnswer[perm,perm]
+	simplexgraphcmp(sg, SimplexGraph(sgAnswer.G[perm,:],sgAnswer.w))
 	S = simplices2kernelmatrix(sg)
 	@test S ≈ SAnswer[perm,perm]
 end
@@ -21,7 +39,7 @@ end
 @testset "OneSample" begin
 	annot = ["A"]
 	sg = groupsimplices(annot)
-	@test sg.G==trues(1,1)
+	simplexgraphcmp(sg, SimplexGraph(trues(1,1),[1]))
 	S = simplices2kernelmatrix(sg)
 	@test S==ones(1,1)
 end
@@ -29,7 +47,7 @@ end
 @testset "OneGroup" begin
 	annot = ["A", "A", "A"]
 	sg = groupsimplices(annot)
-	@test sg.G==trues(3,3)
+	simplexgraphcmp(sg, SimplexGraph(trues(3,1),[3]))
 	S = simplices2kernelmatrix(sg)
 	@test S ≈ (Diagonal(ones(3)) + ones(3,3))/4
 end
@@ -37,7 +55,7 @@ end
 @testset "UniqueGroups" begin
 	annot = ["A", "B", "C", "D"]
 	sg = groupsimplices(annot)
-	@test sg.G==Diagonal(trues(4))
+	simplexgraphcmp(sg, SimplexGraph(Diagonal(trues(4)),ones(4)))
 	S = simplices2kernelmatrix(sg)
 	@test S == Diagonal(ones(4))
 end
