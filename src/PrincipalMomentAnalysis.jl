@@ -11,6 +11,7 @@ include("util.jl")
 export
 	PMA,
 	pma,
+	SimplexGraph,
 	groupsimplices,
 	timeseriessimplices,
 	neighborsimplices,
