@@ -61,26 +61,38 @@ end
 """
 	timeseriessimplices(time::AbstractVector; groupby::AbstractVector)
 
-Create simplex graph connecting elements adjacent in time.
-In case of ties, **All** elements at a unique timepoint will be connected to the **all** elements at the previous, current and next timepoints.
+Create SimplexGraph connecting elements adjacent in time.
+In case of ties, **all** elements at a unique timepoint will be connected to the **all** elements at the previous, current and next timepoints.
 If `groupby` is specified, the elements are first divided by group, and then connected by time.
 
 # Examples
 ```
-julia> G = timeseriessimplices([0.5, 1.0, 4.0])
+julia> sg = timeseriessimplices([0.5, 1.0, 4.0]);
+
+julia> sg.G
 3×3 BitArray{2}:
  1  1  0
  1  1  1
  0  1  1
 
-julia> G = timeseriessimplices([0.5, 1.0, 1.0, 4.0])
-4×4 BitArray{2}:
- 1  1  1  0
- 1  1  1  1
- 1  1  1  1
- 0  1  1  1
+julia> sg = timeseriessimplices([0.5, 1.0, 1.0, 4.0]);
 
-julia> G = timeseriessimplices([2, 4, 6, 2, 4, 8]; groupby=["A","A","A","B","B","B"])
+julia> sg.G
+4×3 BitArray{2}:
+ 1  1  0
+ 1  1  1
+ 1  1  1
+ 0  1  1
+
+julia> sg.w
+3-element Array{Int64,1}:
+ 1
+ 2
+ 1
+
+julia> sg = timeseriessimplices([2, 4, 6, 2, 4, 8]; groupby=["A","A","A","B","B","B"]);
+
+julia> sg.G
 6×6 BitArray{2}:
  1  1  0  0  0  0
  1  1  1  0  0  0
@@ -93,26 +105,40 @@ julia> G = timeseriessimplices([2, 4, 6, 2, 4, 8]; groupby=["A","A","A","B","B",
 function timeseriessimplices(time::AbstractVector; groupby::AbstractVector=falses(length(time)))
 	N = length(groupby)
 
-	G = falses(N,N) # make sparse?
+	G = BitVector() # make sparse?
+	w = Int[]
 
+	# TODO: Rewrite. Can be simplified and optimized.
 	for g in unique(groupby)
 		ind = findall( groupby.==g )
 		time2 = time[ind]
-		
-		prevInd = Int[]
-		for t in unique(sort(time2))
-			currInd = ind[time2.==t]
+		uniqueTimes = sort(unique(time2))
 
-			G[currInd,currInd] .= true
-			G[currInd,prevInd] .= true
-			G[prevInd,currInd] .= true
+		currInd = Int[]
+		nextInd = ind[time2.==uniqueTimes[1]]
+		s = falses(length(time))
+		s[nextInd] .= true
+
+		for t in Iterators.drop(uniqueTimes,1)
 			prevInd = currInd
+			currInd = nextInd
+			nextInd = ind[time2.==t]
+			s[nextInd] .= true
+			append!(G,s)
+			push!(w, length(currInd))
+			s[prevInd] .= false
+		end
+		if length(uniqueTimes)==2 # Two timepoints means the same simplex is used for both.
+			w[end] += length(nextInd)
+		else
+			append!(G,s)
+			push!(w, length(nextInd))
 		end
 	end
 
-	SimplexGraph(G)
+	G = reshape(G, length(time), :)
+	SimplexGraph(G,w)
 end
-
 
 """
 	neighborsimplices2(D2; k, r, symmetric, normalizedist, groupby)

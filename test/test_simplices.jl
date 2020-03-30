@@ -55,7 +55,7 @@ end
 @testset "UniqueGroups" begin
 	annot = ["A", "B", "C", "D"]
 	sg = groupsimplices(annot)
-	simplexgraphcmp(sg, SimplexGraph(Diagonal(trues(4)),ones(4)))
+	simplexgraphcmp(sg, SimplexGraph(Diagonal(trues(4)),ones(Int,4)))
 	S = simplices2kernelmatrix(sg)
 	@test S == Diagonal(ones(4))
 end
@@ -67,7 +67,7 @@ end
 	annot = repeat(["A"], N)
 	t = 1:N
 	sg = timeseriessimplices(t, groupby=annot)
-	@test sg.G == SymTridiagonal(trues(N),trues(N-1))
+	simplexgraphcmp(sg, SimplexGraph(SymTridiagonal(trues(N),trues(N-1)), ones(Int,N)))
 	S = simplices2kernelmatrix(sg)
 	@test S ≈ [1/2 1/4 1/12 0 0 0; 1/4 2/3 1/6 1/12 0 0; 1/12 1/6 1/2 1/6 1/12 0; 0 1/12 1/6 1/2 1/6 1/12; 0 0 1/12 1/6 2/3 1/4; 0 0 0 1/12 1/4 1/2]
 end
@@ -79,7 +79,7 @@ end
 	sg = timeseriessimplices(t, groupby=annot)
 	T = SymTridiagonal(trues(N),trues(N-1))
 	Z = falses(N,N)
-	@test sg.G == [T Z; Z T]
+	simplexgraphcmp(sg, SimplexGraph([T Z; Z T], ones(Int,2N)))
 	S = simplices2kernelmatrix(sg)
 	S1 = [1/2 1/4 1/12 0 0 0; 1/4 2/3 1/6 1/12 0 0; 1/12 1/6 1/2 1/6 1/12 0; 0 1/12 1/6 1/2 1/6 1/12; 0 0 1/12 1/6 2/3 1/4; 0 0 0 1/12 1/4 1/2]
 	@test S ≈ [S1 Z; Z S1]
@@ -90,26 +90,27 @@ end
 	annot = repeat(["A"], 2N)
 	t = div.(0:2N-1,2)
 	sg = timeseriessimplices(t, groupby=annot)
-	@test sg.G == repeat(SymTridiagonal(trues(N),trues(N-1)), inner=(2,2))
+	simplexgraphcmp(sg, SimplexGraph(repeat(SymTridiagonal(trues(N),trues(N-1)), inner=(2,1)), 2*ones(N)))
 	S = simplices2kernelmatrix(sg)
 	@test S ≈ [31/105 31/210 31/210 31/210 1/21 1/21 0 0 0 0 0 0; 31/210 31/105 31/210 31/210 1/21 1/21 0 0 0 0 0 0; 31/210 31/210 41/105 41/210 2/21 2/21 1/21 1/21 0 0 0 0; 31/210 31/210 41/210 41/105 2/21 2/21 1/21 1/21 0 0 0 0; 1/21 1/21 2/21 2/21 2/7 1/7 2/21 2/21 1/21 1/21 0 0; 1/21 1/21 2/21 2/21 1/7 2/7 2/21 2/21 1/21 1/21 0 0; 0 0 1/21 1/21 2/21 2/21 2/7 1/7 2/21 2/21 1/21 1/21; 0 0 1/21 1/21 2/21 2/21 1/7 2/7 2/21 2/21 1/21 1/21; 0 0 0 0 1/21 1/21 2/21 2/21 41/105 41/210 31/210 31/210; 0 0 0 0 1/21 1/21 2/21 2/21 41/210 41/105 31/210 31/210; 0 0 0 0 0 0 1/21 1/21 31/210 31/210 31/105 31/210; 0 0 0 0 0 0 1/21 1/21 31/210 31/210 31/210 31/105]
 end
 
 @testset "MixedTimeSeries" begin
-	GAnswer = Bool[1 1 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0; 1 1 1 1 1 1 0 0 0 0 0 0 0 0 0 0 0 0; 1 1 1 1 1 1 0 0 0 0 0 0 0 0 0 0 0 0; 0 1 1 1 1 1 0 0 0 0 0 0 0 0 0 0 0 0; 0 1 1 1 1 1 0 0 0 0 0 0 0 0 0 0 0 0; 0 1 1 1 1 1 0 0 0 0 0 0 0 0 0 0 0 0; 0 0 0 0 0 0 1 0 0 0 0 0 0 0 0 0 0 0; 0 0 0 0 0 0 0 1 1 1 0 0 0 0 0 0 0 0; 0 0 0 0 0 0 0 1 1 1 0 0 0 0 0 0 0 0; 0 0 0 0 0 0 0 1 1 1 0 0 0 0 0 0 0 0; 0 0 0 0 0 0 0 0 0 0 1 1 1 0 0 0 0 0; 0 0 0 0 0 0 0 0 0 0 1 1 1 0 0 0 0 0; 0 0 0 0 0 0 0 0 0 0 1 1 1 1 0 0 0 0; 0 0 0 0 0 0 0 0 0 0 0 0 1 1 1 1 1 0; 0 0 0 0 0 0 0 0 0 0 0 0 0 1 1 1 1 1; 0 0 0 0 0 0 0 0 0 0 0 0 0 1 1 1 1 1; 0 0 0 0 0 0 0 0 0 0 0 0 0 1 1 1 1 1; 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 1 1 1]
+	GAnswer = Bool[1 1 0 0 0 0 0 0 0 0; 1 1 1 0 0 0 0 0 0 0; 1 1 1 0 0 0 0 0 0 0; 0 1 1 0 0 0 0 0 0 0; 0 1 1 0 0 0 0 0 0 0; 0 1 1 0 0 0 0 0 0 0; 0 0 0 1 0 0 0 0 0 0; 0 0 0 0 1 0 0 0 0 0; 0 0 0 0 1 0 0 0 0 0; 0 0 0 0 1 0 0 0 0 0; 0 0 0 0 0 1 1 0 0 0; 0 0 0 0 0 1 1 0 0 0; 0 0 0 0 0 1 1 1 0 0; 0 0 0 0 0 0 1 1 1 0; 0 0 0 0 0 0 0 1 1 1; 0 0 0 0 0 0 0 1 1 1; 0 0 0 0 0 0 0 1 1 1; 0 0 0 0 0 0 0 0 1 1]
+	wAnswer = Int[1, 2, 3, 1, 3, 2, 1, 1, 3, 1]
 	SAnswer = [11/42 11/84 11/84 1/21 1/21 1/21 0 0 0 0 0 0 0 0 0 0 0 0; 11/84 97/210 97/420 31/210 31/210 31/210 0 0 0 0 0 0 0 0 0 0 0 0; 11/84 97/420 97/210 31/210 31/210 31/210 0 0 0 0 0 0 0 0 0 0 0 0; 1/21 31/210 31/210 31/105 31/210 31/210 0 0 0 0 0 0 0 0 0 0 0 0; 1/21 31/210 31/210 31/210 31/105 31/210 0 0 0 0 0 0 0 0 0 0 0 0; 1/21 31/210 31/210 31/210 31/210 31/105 0 0 0 0 0 0 0 0 0 0 0 0; 0 0 0 0 0 0 1/1 0 0 0 0 0 0 0 0 0 0 0; 0 0 0 0 0 0 0 1/2 1/4 1/4 0 0 0 0 0 0 0 0; 0 0 0 0 0 0 0 1/4 1/2 1/4 0 0 0 0 0 0 0 0; 0 0 0 0 0 0 0 1/4 1/4 1/2 0 0 0 0 0 0 0 0; 0 0 0 0 0 0 0 0 0 0 13/30 13/60 13/60 1/20 0 0 0 0; 0 0 0 0 0 0 0 0 0 0 13/60 13/30 13/60 1/20 0 0 0 0; 0 0 0 0 0 0 0 0 0 0 13/60 13/60 1/2 1/12 1/30 1/30 1/30 0; 0 0 0 0 0 0 0 0 0 0 1/20 1/20 1/12 11/30 2/15 2/15 2/15 1/10; 0 0 0 0 0 0 0 0 0 0 0 0 1/30 2/15 11/30 11/60 11/60 3/20; 0 0 0 0 0 0 0 0 0 0 0 0 1/30 2/15 11/60 11/30 11/60 3/20; 0 0 0 0 0 0 0 0 0 0 0 0 1/30 2/15 11/60 11/60 11/30 3/20; 0 0 0 0 0 0 0 0 0 0 0 0 0 1/10 3/20 3/20 3/20 3/10]
 
 	annot = ["A", "A", "A", "A", "A", "A", "B", "C", "C", "C", "D", "D", "D", "D", "D", "D", "D", "D" ]
 	t     = [ 0,   5,   5,   7,   7,   7,   8,   4,   4,   8,   1,   1,   2,   3,   4,   4,   4,   5  ]
 	sg = timeseriessimplices(t, groupby=annot)
-	@test sg.G == GAnswer
+	simplexgraphcmp(sg, SimplexGraph(GAnswer,wAnswer))
 	S = simplices2kernelmatrix(sg)
 	@test S ≈ SAnswer
 
 	# try permuted version
 	perm = [3, 9, 13, 12, 2, 4, 17, 10, 7, 14, 11, 1, 6, 8, 5, 15, 18, 16]
 	sg = timeseriessimplices(t[perm], groupby=annot[perm])
-	@test sg.G==GAnswer[perm,perm]
+	simplexgraphcmp(sg, SimplexGraph(GAnswer[perm,:],wAnswer))
 	S = simplices2kernelmatrix(sg)
 	@test S ≈ SAnswer[perm,perm]
 end
