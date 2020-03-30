@@ -41,7 +41,7 @@ end
 	sg = groupsimplices(annot)
 	simplexgraphcmp(sg, SimplexGraph(trues(1,1),[1]))
 	S = simplices2kernelmatrix(sg)
-	@test S==ones(1,1)
+	@test S ≈ ones(1,1)
 end
 
 @testset "OneGroup" begin
@@ -57,7 +57,7 @@ end
 	sg = groupsimplices(annot)
 	simplexgraphcmp(sg, SimplexGraph(Diagonal(trues(4)),ones(Int,4)))
 	S = simplices2kernelmatrix(sg)
-	@test S == Diagonal(ones(4))
+	@test S ≈ Diagonal(ones(4))
 end
 
 
@@ -122,7 +122,7 @@ end
 	sg = neighborsimplices(A)
 	@test sg.G == Diagonal(trues(10))
 	S = simplices2kernelmatrix(sg)
-	@test S == Diagonal(ones(10))
+	@test S ≈ Diagonal(ones(10))
 
 	sg = neighborsimplices(A; k=1)
 	@test sg.G == Bool[1 0 0 0 0 0 0 0 0 0; 0 1 0 0 0 1 0 0 0 1; 0 0 1 0 0 0 0 1 0 0; 0 0 0 1 0 0 0 0 0 0; 1 0 0 0 1 0 0 0 0 0; 0 1 0 0 0 1 0 0 0 0; 0 0 0 0 0 0 1 0 1 0; 0 0 1 0 1 0 0 1 0 0; 0 0 0 0 0 0 1 0 1 0; 0 0 0 1 0 0 0 0 0 1]
@@ -150,7 +150,7 @@ end
 	sg = sparseneighborsimplices(A)
 	@test sg.G == Diagonal(trues(10))
 	S = simplices2kernelmatrix(sg)
-	@test S == Diagonal(ones(10))
+	@test S ≈ Diagonal(ones(10))
 
 	sg = sparseneighborsimplices(A; k=1)
 	@test sg.G == Bool[1 0 0 0 0 0 0 0 0 0; 0 1 0 0 0 1 0 0 0 1; 0 0 1 0 0 0 0 1 0 0; 0 0 0 1 0 0 0 0 0 0; 1 0 0 0 1 0 0 0 0 0; 0 1 0 0 0 1 0 0 0 0; 0 0 0 0 0 0 1 0 1 0; 0 0 1 0 1 0 0 1 0 0; 0 0 0 0 0 0 1 0 1 0; 0 0 0 1 0 0 0 0 0 1]
@@ -180,7 +180,7 @@ end
 	sg = neighborsimplices(A; r=0.2)
 	@test sg.G == Diagonal(trues(10))
 	S = simplices2kernelmatrix(sg)
-	@test S == Diagonal(ones(10))
+	@test S ≈ Diagonal(ones(10))
 
 	sg = neighborsimplices(A; r=0.5)
 	@test sg.G == Bool[1 0 0 0 0 0 0 0 1 0; 0 1 1 1 0 0 1 0 0 0; 0 1 1 1 1 0 1 0 0 1; 0 1 1 1 0 0 1 0 0 1; 0 0 1 0 1 0 1 0 0 0; 0 0 0 0 0 1 0 1 0 0; 0 1 1 1 1 0 1 0 0 1; 0 0 0 0 0 1 0 1 0 0; 1 0 0 0 0 0 0 0 1 1; 0 0 1 1 0 0 1 0 1 1]
@@ -203,7 +203,7 @@ end
 	sg = sparseneighborsimplices(A; r=0.2)
 	@test sg.G == Diagonal(trues(10))
 	S = simplices2kernelmatrix(sg)
-	@test S == Diagonal(ones(10))
+	@test S ≈ Diagonal(ones(10))
 
 	sg = sparseneighborsimplices(A; r=0.5)
 	@test sg.G == Bool[1 0 0 0 0 0 0 0 1 0; 0 1 1 1 0 0 1 0 0 0; 0 1 1 1 1 0 1 0 0 1; 0 1 1 1 0 0 1 0 0 1; 0 0 1 0 1 0 1 0 0 0; 0 0 0 0 0 1 0 1 0 0; 0 1 1 1 1 0 1 0 0 1; 0 0 0 0 0 1 0 1 0 0; 1 0 0 0 0 0 0 0 1 1; 0 0 1 1 0 0 1 0 1 1]

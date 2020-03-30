@@ -19,16 +19,19 @@ function Base.getproperty(F::PMA,name::Symbol)
 end
 
 function simplices2kernelmatrix(sg::SimplexGraph)
-	s = vec(sum(sg.G,dims=1))
-	K = sg.G * Diagonal(sg.w./(s.*(s.+1))) * sg.G'
-	K .+= Diagonal(diag(K))
+	A = simplices2kernelmatrixroot(sg, simplify=false)
+	A*A'
 end
 
-function simplices2kernelmatrixroot(sg::SimplexGraph)
-	K = simplices2kernelmatrix(sg)
-	# Factor K into AᵀA where A is symmetric too.
-	F = eigen(Symmetric(convert(Matrix,K))) # convert to matrix handles the case when K is sparse and is a no-op otherwise
-	F.vectors*Diagonal(sqrt.(max.(0.0,F.values)))*F.vectors'
+function simplices2kernelmatrixroot(sg::SimplexGraph; simplify=true)::SparseMatrixCSC
+	s = vec(sum(sg.G,dims=1))
+
+	L = sg.G * Diagonal(sqrt.(sg.w./(s.*(s.+1))))
+	D = Diagonal(sqrt.(vec(sum(x->x^2,L,dims=2))))
+	simplify || return [L D]
+
+	QR = qr(vcat(sparse(L'), D))
+	sparse(QR.R[:,invperm(QR.pcol)]')
 end
 
 
@@ -36,11 +39,12 @@ end
 
 function _pma(A::AbstractMatrix, S::AbstractMatrix; nsv::Integer=6)
 	P,N = size(A)
+	L = size(S,2)
 	Y = A*S
 
 	K = Symmetric(Y'Y)
-	nsv = min(nsv, N)
-	F = eigen(K, N-nsv+1:N)
+	nsv = min(nsv, P, N)
+	F = eigen(K, L-nsv+1:L)
 	Σ = sqrt.(max.(0.,reverse(F.values)))
 	VV = F.vectors[:,end:-1:1] # Coordinates of simplex equivalents, not interesting in practice.
 
