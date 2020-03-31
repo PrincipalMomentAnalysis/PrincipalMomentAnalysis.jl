@@ -146,7 +146,7 @@ function timeseriessimplices(time::AbstractVector; groupby::AbstractVector=false
 end
 
 """
-	neighborsimplices2(D2; k, r, symmetric, normalizedist, groupby)
+	neighborsimplices2(D2; k, r, symmetric, groupby)
 
 Create simplex graph connecting nearest neighbors in given symmetric matrix where element `i,j` equals the squared distance between samples `i` and `j`.
 
@@ -155,14 +155,12 @@ Create simplex graph connecting nearest neighbors in given symmetric matrix wher
 * `k`: Number of nearest neighbors to connect. Default: `0`.
 * `r`: Connected all neighbors with disctance `≤r`. Default: `0.0`.
 * `symmetric`: Make the simplex graph symmetric. Default: `false`.
-* `normalizedist`: Normalize distances to the scale [0.0,1.0]. Affects the `r` parameter. Default: `true`.
 * `groupby`: Only connected samples within the specified groups. Default: Disabled.
 """
-function neighborsimplices2(D2::AbstractMatrix; k::Integer=0, r::Real=0.0, symmetric=false, normalizedist=true, groupby=falses(size(D2,1)))
+function neighborsimplices2(D2::AbstractMatrix; k::Integer=0, r2::Real=0.0, symmetric=false, groupby=falses(size(D2,1)))
 	@assert issymmetric(D2)
 	@assert all(x->x>=0.0, D2)
 	N = size(D2,1)
-	r2 = r*r * (normalizedist ? maximum(D2) : 1.0)
 
 	uniqueGroups = unique(groupby)
 	groupInds = Dict( g=>findall(groupby.==g) for g in uniqueGroups )
@@ -190,19 +188,19 @@ Create simplex graph connecting nearest neighbor samples.
 * `r`: Connected all neighbors with disctance `≤r`. Default: `0.0`.
 * `dim`: Reduce the dimension to `dim` before computing distances. Useful to reduce noise. Default: Disabled.
 * `symmetric`: Make the simplex graph symmetric. Default: `false`.
-* `normalizedist`: Normalize distances to the scale [0.0,1.0]. Affects the `r` parameter. Default: `true`.
+* `normalizedist`: Normalize distances to the scale [0.0,1.0] such that the maximal distance from a point to the origin is 0.5. Affects the `r` parameter. Default: `true`.
 * `groupby`: Only connected samples within the specified groups. Default: Disabled.
 
 # Examples
 ```
-julia> G = neighborsimplices([0 0 2 2; 0 1 1 0]; k=1)
+julia> sg = neighborsimplices([0 0 2 2; 0 1 1 0]; k=1); sg.G
 4×4 BitArray{2}:
  1  1  0  0
  1  1  0  0
  0  0  1  1
  0  0  1  1
 
-julia> G = neighborsimplices([0 0 2 2; 0 1 1 0]; r=0.9)
+julia> sg = neighborsimplices([0 0 2 2; 0 1 1 0]; r=0.45); sg.G
 4×4 BitArray{2}:
  1  1  0  1
  1  1  1  0
@@ -210,27 +208,32 @@ julia> G = neighborsimplices([0 0 2 2; 0 1 1 0]; r=0.9)
  1  0  1  1
 ```
 """
-function neighborsimplices(A::AbstractMatrix; k::Integer=0, r::Real=0.0, dim::Integer=typemax(Int), kwargs...)
+function neighborsimplices(A::AbstractMatrix; k::Integer=0, r::Real=0.0, dim::Integer=typemax(Int), normalizedist=true, kwargs...)
+	@assert r>=0
 	P,N = size(A)
+	r2 = r*r
+
+	if dim<minimum(size(A))
+		F = svdbyeigen(A; nsv=dim)
+		A = Diagonal(F.S)*F.Vt
+	end
 	K = A'A
 
-	if dim<size(K,1)
-		F = eigen(Symmetric(K), N-dim+1:N)
-		K = F.vectors*Diagonal(F.values)*F.vectors'
+	if r2>0 && normalizedist
+		r2 *= 4*maximum(sum(x->x^2, A, dims=1))
 	end
 
 	d = diag(K)
 	D2 = Symmetric(max.(0., d .+ d' .- 2K)) # matrix of squared distances
-	neighborsimplices2(D2,k=k,r=r;kwargs...)
+	neighborsimplices2(D2,k=k,r2=r2;kwargs...)
 end
 
 
 
 
-function sparseneighborsimplices2(D2::Symmetric; k::Integer=0, r::Real=0.0, symmetric=false, normalizedist=true)
+function sparseneighborsimplices2(D2::Symmetric; k::Integer=0, r2::Real=0.0, symmetric=false)
 	@assert all(x->x>=0.0, D2)
 	N = size(D2,1)
-	r2 = r*r * (normalizedist ? maximum(D2) : 1.0)
 
 	I,J = Int[],Int[]
 	for j=1:N
@@ -245,23 +248,22 @@ function sparseneighborsimplices2(D2::Symmetric; k::Integer=0, r::Real=0.0, symm
 	symmetric && (G .|= G')
 	SimplexGraph(G)
 end
-function sparseneighborsimplices(A::AbstractMatrix; k::Integer=0, r::Real=0.0, dim::Integer=typemax(Int), kwargs...)
+function sparseneighborsimplices(A::AbstractMatrix; k::Integer=0, r::Real=0.0, dim::Integer=typemax(Int), normalizedist=true, kwargs...)
+	@assert r>=0
 	P,N = size(A)
+	r2 = r*r
 
+	if dim<minimum(size(A))
+		F = svdbyeigen(A; nsv=dim)
+		A = Diagonal(F.S)*F.Vt
+	end
+	K = A'A
 
-	K = if dim>=min(N,P)
-		A'A # no dimension reduction needed
-	elseif N<=P
-		F = eigen(Symmetric(A'A), N-dim+1:N) # A'A is small
-		F.vectors*Diagonal(F.values)*F.vectors'
-	else # if P<N
-		F = eigen(Symmetric(A*A'), P-dim+1:P) # AA' is small
-		U = F.vectors
-		VΣ = A'U
-		VΣ*VΣ'
+	if r2>0 && normalizedist
+		r2 *= 4*maximum(sum(x->x^2, A, dims=1))
 	end
 
 	d = diag(K)
 	D2 = Symmetric(max.(0., d .+ d' .- 2K)) # matrix of squared distances
-	sparseneighborsimplices2(D2,k=k,r=r;kwargs...)
+	sparseneighborsimplices2(D2,k=k,r2=r2;kwargs...)
 end

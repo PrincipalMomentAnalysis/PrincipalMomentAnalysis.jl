@@ -4,6 +4,7 @@ using LinearAlgebra
 using SparseArrays
 using Statistics
 
+include("svd.jl")
 include("simplices.jl")
 include("pma.jl")
 include("util.jl")
