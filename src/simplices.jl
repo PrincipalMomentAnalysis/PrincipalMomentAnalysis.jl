@@ -206,7 +206,7 @@ function _neighborsimplices(A::AbstractMatrix; k::Integer=0, r::Real=0.0, symmet
 		end
 	end
 
-	SimplexGraph(sparse(rowInd,colInd,true))
+	SimplexGraph(symmetric ? sparse([rowInd;colInd],[colInd;rowInd],true) : sparse(rowInd,colInd,true))
 end
 
 function _neighborsimplices!(rowInd, colInd, A, indfun, k, r)
