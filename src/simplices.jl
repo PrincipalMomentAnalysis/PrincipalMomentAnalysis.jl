@@ -52,14 +52,16 @@ julia> sg.w
 """
 function groupsimplices(groupby::AbstractVector)
 	u = unique(groupby)
-	ind = indexin(groupby,unique(groupby))
-	G = falses(length(groupby), length(u)) # TODO: make sparse?
+	ind = indexin(groupby,u)
+	I = Vector{Int}(undef,length(groupby))
+	J = Vector{Int}(undef,length(groupby))
 	w = zeros(Int,length(u))
-	for (i,k) in enumerate(ind)
-		G[i,k] = true
-		w[k] += 1
+	for (i,j) in enumerate(ind)
+		I[i] = i
+		J[i] = j
+		w[j] += 1
 	end
-	SimplexGraph(G,w)
+	SimplexGraph(sparse(I,J,true),w)
 end
 
 
@@ -110,10 +112,11 @@ julia> sg.G
 function timeseriessimplices(time::AbstractVector; groupby::AbstractVector=falses(length(time)))
 	N = length(groupby)
 
-	G = BitVector() # make sparse?
+	I,J = Int[],Int[]
 	w = Int[]
 
 	# TODO: Rewrite. Can be simplified and optimized.
+	col = 1
 	for g in unique(groupby)
 		ind = findall( groupby.==g )
 		time2 = time[ind]
@@ -121,30 +124,31 @@ function timeseriessimplices(time::AbstractVector; groupby::AbstractVector=false
 
 		currInd = Int[]
 		nextInd = ind[time2.==uniqueTimes[1]]
-		s = falses(length(time))
-		s[nextInd] .= true
 
 		for t in Iterators.drop(uniqueTimes,1)
 			prevInd = currInd
 			currInd = nextInd
 			nextInd = ind[time2.==t]
-			s[nextInd] .= true
-			append!(G,s)
+
+			append!(I, prevInd)
+			append!(I, currInd)
+			append!(I, nextInd)
+			append!(J, repeat([col],outer=length(prevInd)+length(currInd)+length(nextInd)))
 			push!(w, length(currInd))
-			s[prevInd] .= false
+			col += 1
 		end
 		if length(uniqueTimes)==2 # Two timepoints means the same simplex is used for both.
 			w[end] += length(nextInd)
 		else
-			append!(G,s)
+			append!(I, currInd)
+			append!(I, nextInd)
+			append!(J, repeat([col],outer=length(currInd)+length(nextInd)))
 			push!(w, length(nextInd))
+			col += 1
 		end
 	end
-
-	G = reshape(G, length(time), :)
-	SimplexGraph(G,w)
+	SimplexGraph(sparse(I,J,true),w)
 end
-
 
 
 """
@@ -186,39 +190,41 @@ function neighborsimplices(A::AbstractMatrix; dim::Integer=typemax(Int), kwargs.
 	_neighborsimplices(A; kwargs...)
 end
 
-function _neighborsimplices(A::AbstractMatrix; k::Integer=0, r::Real=0.0, symmetric=false, normalizedist=true, groupby=nothing)#falses(size(A,2)))
+function _neighborsimplices(A::AbstractMatrix; k::Integer=0, r::Real=0.0, symmetric=false, normalizedist=true, groupby=nothing)
 	k==0 && r==0.0 && return SimplexGraph(sparse(Diagonal(trues(size(A,2))))) # trivial case, avoid some computations.
 	r>0.0 && normalizedist && (r *= 2*sqrt(maximum(sum(x->x^2, A, dims=1))))
 
 	N = size(A,2)
-	G = falses(N,N)
+	rowInd,colInd = Int[],Int[]
 
 	if groupby===nothing
-		_neighborsimplices!(G, A, identity, k, r)
+		_neighborsimplices!(rowInd, colInd, A, identity, k, r)
 	else
 		for g in unique(groupby)
 			ind = findall( groupby.==g )
-			_neighborsimplices!(G, A[:,ind], x->ind[x], k, r)
+			_neighborsimplices!(rowInd, colInd, A[:,ind], x->ind[x], k, r)
 		end
 	end
 
-	SimplexGraph(G)
+	SimplexGraph(sparse(rowInd,colInd,true))
 end
 
-function _neighborsimplices!(G, A, indfun, k, r)
+function _neighborsimplices!(rowInd, colInd, A, indfun, k, r)
 	tree = BallTree(A)
 
 	if k>0
 		indices,_ = knn(tree, A, min(k+1,size(A,2)))
 		for (j,I) in enumerate(indices)
-			G[indfun.(I),indfun(j)] .= true
+			append!(rowInd,indfun.(I))
+			append!(colInd,repeat([indfun(j)],outer=length(I)))
 		end
 	end
 
 	if r>0.0
 		indices = inrange(tree, A, r)
 		for (j,I) in enumerate(indices)
-			G[indfun.(I),indfun(j)] .= true
+			append!(rowInd,indfun.(I))
+			append!(colInd,repeat([indfun(j)],outer=length(I)))
 		end
 	end
 end
