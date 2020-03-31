@@ -145,37 +145,7 @@ function timeseriessimplices(time::AbstractVector; groupby::AbstractVector=false
 	SimplexGraph(G,w)
 end
 
-"""
-	neighborsimplices2(D2; k, r, symmetric, groupby)
 
-Create simplex graph connecting nearest neighbors in given symmetric matrix where element `i,j` equals the squared distance between samples `i` and `j`.
-
-# Inputs
-* `D2`: Matrix of squared distances.
-* `k`: Number of nearest neighbors to connect. Default: `0`.
-* `r`: Connected all neighbors with disctance `≤r`. Default: `0.0`.
-* `symmetric`: Make the simplex graph symmetric. Default: `false`.
-* `groupby`: Only connected samples within the specified groups. Default: Disabled.
-"""
-function neighborsimplices2(D2::AbstractMatrix; k::Integer=0, r2::Real=0.0, symmetric=false, groupby=falses(size(D2,1)))
-	@assert issymmetric(D2)
-	@assert all(x->x>=0.0, D2)
-	N = size(D2,1)
-
-	uniqueGroups = unique(groupby)
-	groupInds = Dict( g=>findall(groupby.==g) for g in uniqueGroups )
-
-	G = falses(N,N)
-	for j=1:N
-		gInds = groupInds[groupby[j]]
-		ind = gInds[sortperm(D2[gInds,j])]
-		kk = max(k+1, searchsortedlast(D2[ind,j], r2)) # k+1 to include current node
-		G[ind[1:min(kk,length(ind))], j] .= true
-	end
-
-	symmetric && (G .|= G')
-	SimplexGraph(G)
-end
 
 """
 	neighborsimplices(A::AbstractMatrix; k, r, dim, symmetric, normalizedist, groupby)
@@ -208,62 +178,47 @@ julia> sg = neighborsimplices([0 0 2 2; 0 1 1 0]; r=0.45); sg.G
  1  0  1  1
 ```
 """
-function neighborsimplices(A::AbstractMatrix; k::Integer=0, r::Real=0.0, dim::Integer=typemax(Int), normalizedist=true, kwargs...)
-	@assert r>=0
-	P,N = size(A)
-	r2 = r*r
-
+function neighborsimplices(A::AbstractMatrix; dim::Integer=typemax(Int), kwargs...)
 	if dim<minimum(size(A))
 		F = svdbyeigen(A; nsv=dim)
 		A = Diagonal(F.S)*F.Vt
 	end
-	K = A'A
-
-	if r2>0 && normalizedist
-		r2 *= 4*maximum(sum(x->x^2, A, dims=1))
-	end
-
-	d = diag(K)
-	D2 = Symmetric(max.(0., d .+ d' .- 2K)) # matrix of squared distances
-	neighborsimplices2(D2,k=k,r2=r2;kwargs...)
+	_neighborsimplices(A; kwargs...)
 end
 
+function _neighborsimplices(A::AbstractMatrix; k::Integer=0, r::Real=0.0, symmetric=false, normalizedist=true, groupby=nothing)#falses(size(A,2)))
+	k==0 && r==0.0 && return SimplexGraph(sparse(I(size(A,2)))) # trivial case, avoid some computations.
+	r>0.0 && normalizedist && (r *= 2*sqrt(maximum(sum(x->x^2, A, dims=1))))
 
+	N = size(A,2)
+	G = falses(N,N)
 
-
-function sparseneighborsimplices2(D2::Symmetric; k::Integer=0, r2::Real=0.0, symmetric=false)
-	@assert all(x->x>=0.0, D2)
-	N = size(D2,1)
-
-	I,J = Int[],Int[]
-	for j=1:N
-		ind = sortperm(D2[:,j])
-		kk = max(k+1, searchsortedlast(D2[ind,j], r2)) # k+1 to include current node
-		rows = ind[1:min(kk,length(ind))]
-		append!(I,rows)
-		append!(J,Iterators.repeated(j,length(rows)))
+	if groupby===nothing
+		_neighborsimplices!(G, A, identity, k, r)
+	else
+		for g in unique(groupby)
+			ind = findall( groupby.==g )
+			_neighborsimplices!(G, A[:,ind], x->ind[x], k, r)
+		end
 	end
-	G = sparse(I,J,trues(length(I)))
 
-	symmetric && (G .|= G')
 	SimplexGraph(G)
 end
-function sparseneighborsimplices(A::AbstractMatrix; k::Integer=0, r::Real=0.0, dim::Integer=typemax(Int), normalizedist=true, kwargs...)
-	@assert r>=0
-	P,N = size(A)
-	r2 = r*r
 
-	if dim<minimum(size(A))
-		F = svdbyeigen(A; nsv=dim)
-		A = Diagonal(F.S)*F.Vt
-	end
-	K = A'A
+function _neighborsimplices!(G, A, indfun, k, r)
+	tree = BallTree(A)
 
-	if r2>0 && normalizedist
-		r2 *= 4*maximum(sum(x->x^2, A, dims=1))
+	if k>0
+		indices,_ = knn(tree, A, min(k+1,size(A,2)))
+		for (j,I) in enumerate(indices)
+			G[indfun.(I),indfun(j)] .= true
+		end
 	end
 
-	d = diag(K)
-	D2 = Symmetric(max.(0., d .+ d' .- 2K)) # matrix of squared distances
-	sparseneighborsimplices2(D2,k=k,r2=r2;kwargs...)
+	if r>0.0
+		indices = inrange(tree, A, r)
+		for (j,I) in enumerate(indices)
+			G[indfun.(I),indfun(j)] .= true
+		end
+	end
 end

@@ -3,6 +3,7 @@ module PrincipalMomentAnalysis
 using LinearAlgebra
 using SparseArrays
 using Statistics
+using NearestNeighbors
 
 include("svd.jl")
 include("simplices.jl")
@@ -16,9 +17,6 @@ export
 	groupsimplices,
 	timeseriessimplices,
 	neighborsimplices,
-	neighborsimplices2,
-	sparseneighborsimplices,
-	sparseneighborsimplices2,
 	normalizemean!,
 	normalizemean,
 	normalizemeanstd!,
