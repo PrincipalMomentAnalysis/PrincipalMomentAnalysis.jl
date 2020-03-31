@@ -187,7 +187,7 @@ function neighborsimplices(A::AbstractMatrix; dim::Integer=typemax(Int), kwargs.
 end
 
 function _neighborsimplices(A::AbstractMatrix; k::Integer=0, r::Real=0.0, symmetric=false, normalizedist=true, groupby=nothing)#falses(size(A,2)))
-	k==0 && r==0.0 && return SimplexGraph(sparse(I(size(A,2)))) # trivial case, avoid some computations.
+	k==0 && r==0.0 && return SimplexGraph(sparse(Diagonal(trues(size(A,2))))) # trivial case, avoid some computations.
 	r>0.0 && normalizedist && (r *= 2*sqrt(maximum(sum(x->x^2, A, dims=1))))
 
 	N = size(A,2)
