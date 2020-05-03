@@ -13,10 +13,14 @@ struct PMA{T} <: Factorization{T}
 	VV::Matrix{T}
 end
 
+Base.size(F::PMA, dim::Integer) = dim == 1 ? size(F.U, dim) : size(F.Vt, dim)
+Base.size(F::PMA) = (size(F, 1), size(F, 2))
+
 function Base.getproperty(F::PMA,name::Symbol)
 	name==:V && return F.Vt'
 	getfield(F,name)
 end
+Base.propertynames(::PMA) = (:U,:S,:V,:Vt,:VV)
 
 function simplices2kernelmatrix(sg::SimplexGraph)
 	A = simplices2kernelmatrixroot(sg, simplify=false)

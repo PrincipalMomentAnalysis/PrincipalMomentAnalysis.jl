@@ -1,6 +1,7 @@
 @testset "PMA" begin
 
 function factorizationcmp(F1,F2)
+	@test size(F1)==size(F2)
 	@test size(F1.U)==size(F2.U)
 	@test size(F1.S)==size(F2.S)
 	@test size(F1.V)==size(F2.V)
@@ -23,6 +24,15 @@ A = [-8 0 6 0 0 0; -1 9 6 -2 0 -1; -1 0 -2 0 0 0; 0 1 0 1 0 -2; -9 -3 0 0 0 -5; 
 	factorizationcmp(FAns,FPMA)
 	FPMA4 = pma(A,Diagonal(trues(6)); nsv=4)
 	factorizationcmp(extractdims(FAns,1:4),FPMA4)
+end
+
+@testset "properties" begin
+	F = pma(A,Diagonal(trues(6)); nsv=3)
+	@test all(in(propertynames(F)), fieldnames(PMA))
+	@test :V in propertynames(F)
+	for p in propertynames(F)
+		@test getproperty(F,p)!=nothing # test that it doesn't throw
+	end
 end
 
 @testset "TotalSimplexMass" begin
